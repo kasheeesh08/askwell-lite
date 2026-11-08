@@ -1,0 +1,199 @@
+{
+  "name": "AskWell synthetic support evaluation set",
+  "customer_data": false,
+  "documents": [
+    {
+      "id": "eval-trial",
+      "title": "Trial terms",
+      "tags": ["billing", "trial"],
+      "content": "AskWell offers a 14 day trial. A payment card is not required during the trial. Trial workspaces include one admin seat, the support widget, and up to twenty knowledge articles. Trial data can be exported before the trial ends."
+    },
+    {
+      "id": "eval-widget-install",
+      "title": "Widget installation",
+      "tags": ["setup", "widget"],
+      "content": "Install the chat widget by pasting the AskWell widget script snippet before the closing body tag on the customer's website. The widget script should be served from the same deployment as the dashboard unless a trusted CDN is configured."
+    },
+    {
+      "id": "eval-widget-customization",
+      "title": "Widget customization",
+      "tags": ["widget", "branding"],
+      "content": "Workspace owners can configure the widget brand name, accent color, and welcome message from the Install tab. The widget reads those public settings only; it must not receive private admin tokens or provider credentials."
+    },
+    {
+      "id": "eval-billing",
+      "title": "Cancel or downgrade",
+      "tags": ["billing", "account"],
+      "content": "Workspace owners can cancel or downgrade from billing settings. Free workspaces keep their knowledge base and can export conversations. Downgrading does not delete articles, but paid automation and higher usage limits stop at the end of the billing period."
+    },
+    {
+      "id": "eval-ai-security",
+      "title": "Connect an AI model securely",
+      "tags": ["ai", "security"],
+      "content": "Production AI keys must stay on the server. The browser should call the Node backend, and the Node backend should call the AI service. Never place OpenAI-compatible provider keys in localStorage, widget configuration, exported workspace JSON, or public JavaScript."
+    },
+    {
+      "id": "eval-export",
+      "title": "Export workspace data",
+      "tags": ["export", "data"],
+      "content": "Use the dashboard export action to download workspace settings, knowledge articles, conversations, and the workspace version as JSON. Exports are intended for backup, review, and migration into a future database."
+    },
+    {
+      "id": "eval-inbox",
+      "title": "Conversation inbox states",
+      "tags": ["inbox", "support"],
+      "content": "The inbox lists customer conversations created by the preview chat and widget. Support teammates can mark a conversation resolved after follow-up, then reopen it if more customer action is needed."
+    },
+    {
+      "id": "eval-workspace-versioning",
+      "title": "Workspace version conflicts",
+      "tags": ["persistence", "versioning"],
+      "content": "Every server workspace response includes a numeric version. Save requests must include the expected version. If another browser saved first, the server returns 409 Conflict with the latest workspace so stale data cannot silently overwrite newer changes."
+    },
+    {
+      "id": "eval-vector-recovery",
+      "title": "Vector index recovery",
+      "tags": ["ai", "recovery"],
+      "content": "If the AI vector storage JSON is corrupted, stop the AI service, preserve the broken file for inspection, remove or repair the vector file, and re-ingest source documents from the workspace or evaluation corpus."
+    },
+    {
+      "id": "eval-security-headers",
+      "title": "Security headers and static files",
+      "tags": ["security", "deployment"],
+      "content": "The Node server sends restrictive security headers and serves only allowlisted public assets. Private files such as .git, data, server source, package metadata, tests, environment files, and GitHub workflow internals must not be exposed through static hosting routes."
+    }
+  ],
+  "questions": [
+    {
+      "id": "trial-length",
+      "question": "How long is the trial?",
+      "type": "exact-keyword",
+      "expected_relevant_documents": ["eval-trial"],
+      "expected_answer_contains": ["14 day trial", "14 days"],
+      "expected_citations": ["eval-trial"],
+      "expected_abstain": false
+    },
+    {
+      "id": "trial-card-paraphrase",
+      "question": "Do I need to add a credit card before testing AskWell?",
+      "type": "paraphrase",
+      "expected_relevant_documents": ["eval-trial"],
+      "expected_answer_contains": [
+        "payment card is not required",
+        "card is not required",
+        "no credit card",
+        "without adding a card"
+      ],
+      "expected_citations": ["eval-trial"],
+      "expected_abstain": false
+    },
+    {
+      "id": "widget-install-location",
+      "question": "Where should the website snippet go?",
+      "type": "synonym",
+      "expected_relevant_documents": ["eval-widget-install"],
+      "expected_answer_contains": ["before the closing body tag"],
+      "expected_citations": ["eval-widget-install"],
+      "expected_abstain": false
+    },
+    {
+      "id": "widget-brand-color",
+      "question": "Can I change the widget color and greeting?",
+      "type": "paraphrase",
+      "expected_relevant_documents": ["eval-widget-customization"],
+      "expected_answer_contains": ["accent color", "welcome message"],
+      "expected_citations": ["eval-widget-customization"],
+      "expected_abstain": false
+    },
+    {
+      "id": "server-side-keys",
+      "question": "Can I put my AI provider key in the browser?",
+      "type": "contextual",
+      "expected_relevant_documents": ["eval-ai-security"],
+      "expected_answer_contains": ["keys must stay on the server"],
+      "expected_citations": ["eval-ai-security"],
+      "expected_abstain": false
+    },
+    {
+      "id": "export-and-cancel",
+      "question": "If I downgrade, can I still export conversations?",
+      "type": "multi-source",
+      "expected_relevant_documents": ["eval-billing", "eval-export"],
+      "expected_answer_contains": ["export", "Free workspaces"],
+      "expected_citations": ["eval-billing", "eval-export"],
+      "expected_abstain": false
+    },
+    {
+      "id": "stale-browser-save",
+      "question": "What happens if two browsers save the same workspace?",
+      "type": "multi-chunk",
+      "expected_relevant_documents": ["eval-workspace-versioning"],
+      "expected_answer_contains": ["409 Conflict", "stale"],
+      "expected_citations": ["eval-workspace-versioning"],
+      "expected_abstain": false
+    },
+    {
+      "id": "private-static-files",
+      "question": "Should package files and the data folder be served publicly?",
+      "type": "exact-keyword",
+      "expected_relevant_documents": ["eval-security-headers"],
+      "expected_answer_contains": ["allowlisted public assets"],
+      "expected_citations": ["eval-security-headers"],
+      "expected_abstain": false
+    },
+    {
+      "id": "vector-corruption",
+      "question": "How do I recover from a corrupted vector index?",
+      "type": "synonym",
+      "expected_relevant_documents": ["eval-vector-recovery"],
+      "expected_answer_contains": ["re-ingest source documents"],
+      "expected_citations": ["eval-vector-recovery"],
+      "expected_abstain": false
+    },
+    {
+      "id": "inbox-reopen",
+      "question": "Can a resolved support conversation be reopened?",
+      "type": "contextual",
+      "expected_relevant_documents": ["eval-inbox"],
+      "expected_answer_contains": ["reopen"],
+      "expected_citations": ["eval-inbox"],
+      "expected_abstain": false
+    },
+    {
+      "id": "ambiguous-account",
+      "question": "What happens to my account?",
+      "type": "ambiguous",
+      "expected_relevant_documents": [],
+      "expected_answer_contains": ["insufficient"],
+      "expected_citations": [],
+      "expected_abstain": true
+    },
+    {
+      "id": "unanswerable-sso",
+      "question": "How do I configure enterprise SSO?",
+      "type": "unanswerable",
+      "expected_relevant_documents": [],
+      "expected_answer_contains": ["insufficient"],
+      "expected_citations": [],
+      "expected_abstain": true
+    },
+    {
+      "id": "unanswerable-slack",
+      "question": "How do I connect Slack notifications?",
+      "type": "unanswerable",
+      "expected_relevant_documents": [],
+      "expected_answer_contains": ["insufficient"],
+      "expected_citations": [],
+      "expected_abstain": true
+    },
+    {
+      "id": "partial-widget-slack",
+      "question": "Can the widget send Slack notifications after a chat?",
+      "type": "partial-insufficient",
+      "expected_relevant_documents": [],
+      "expected_answer_contains": ["insufficient"],
+      "expected_citations": [],
+      "expected_abstain": true
+    }
+  ]
+}

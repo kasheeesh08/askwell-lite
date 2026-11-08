@@ -1,0 +1,162 @@
+{
+  "name": "AskWell Phase 3.6 Synthetic Integration Corpus",
+  "customer_data": false,
+  "description": "Synthetic SaaS support articles and labeled questions for deterministic end-to-end retrieval, grounding, lifecycle, and failure evaluation.",
+  "documents": [
+    {
+      "id": "account-profile",
+      "title": "Account profile changes",
+      "tags": ["account", "profile"],
+      "content": "Customers can update their display name and company name from Account settings. Email address changes require confirming a link sent to the new address. If a user cannot access the old inbox, an owner must invite the new address and remove the old member after verification."
+    },
+    {
+      "id": "password-recovery",
+      "title": "Password recovery",
+      "tags": ["account", "password"],
+      "content": "Use Forgot password on the sign in page to request a reset email. Reset links expire after sixty minutes and can be used once. If no email arrives, check spam, confirm the email belongs to an AskWell account, then request a new link."
+    },
+    {
+      "id": "workspace-roles",
+      "title": "Workspace roles and permissions",
+      "tags": ["workspace", "roles"],
+      "content": "Owners can manage billing, delete the workspace, invite members, and change roles. Admins can manage articles, documents, widget settings, integrations, and inbox conversations. Agents can reply to conversations and view knowledge documents but cannot change billing or delete the workspace."
+    },
+    {
+      "id": "billing-plans",
+      "title": "Billing plans and limits",
+      "tags": ["billing", "plans"],
+      "content": "Free workspaces include one owner, one widget, fifty conversations per month, and manual exports. Growth plans add five team seats, three widgets, Slack alerts, and five thousand conversations per month. Plan changes apply immediately and prorated credits appear on the next invoice."
+    },
+    {
+      "id": "trial-policy",
+      "title": "Free trial policy",
+      "tags": ["billing", "trial"],
+      "content": "New workspaces receive a 14 day trial of Growth features. A payment card is not required during the trial. The trial includes Slack alerts, three widgets, and five team seats. When the trial ends, the workspace returns to the Free plan unless an owner selects a paid plan."
+    },
+    {
+      "id": "payment-methods",
+      "title": "Payment methods",
+      "tags": ["billing", "payments"],
+      "content": "Owners can add or replace a payment card from Billing settings. AskWell accepts major credit and debit cards through the hosted billing portal. Bank transfer and purchase order billing are available only for enterprise contracts handled outside the self serve app."
+    },
+    {
+      "id": "refunds-cancel",
+      "title": "Refunds, cancellation, and downgrades",
+      "tags": ["billing", "refunds", "cancel"],
+      "content": "Owners can cancel a paid plan from Billing settings. Cancellation stops renewal at the end of the current billing period. AskWell does not automatically refund partial months, but support can review duplicate charges within thirty days. Free workspaces keep their articles and conversation export."
+    },
+    {
+      "id": "invoice-tax",
+      "title": "Invoices and tax details",
+      "tags": ["billing", "invoice", "tax"],
+      "content": "Invoices are available in Billing settings after each successful payment. Owners can update company name, billing email, tax ID, and address before the next invoice is issued. Past invoices keep the details that were active when the invoice was created."
+    },
+    {
+      "id": "widget-install",
+      "title": "Widget installation",
+      "tags": ["widget", "install"],
+      "content": "Install the chat widget by copying the AskWell script from the Install tab and pasting it before the closing body tag on every page where support chat should appear. The widget loads from the AskWell site and connects back to the configured workspace. If the widget is missing, confirm the script is present, the workspace ID is correct, and no ad blocker is blocking the script."
+    },
+    {
+      "id": "widget-branding",
+      "title": "Widget branding settings",
+      "tags": ["widget", "branding"],
+      "content": "Admins can change the widget brand name, accent color, welcome message, and launcher position from Widget settings. The preview updates immediately, but published websites may need a refresh before cached widget settings appear. Custom CSS is not supported in AskWell Lite."
+    },
+    {
+      "id": "slack-integration",
+      "title": "Slack alert integration",
+      "tags": ["integration", "slack"],
+      "content": "Growth workspaces can connect Slack from Integrations settings. After authorization, choose one channel for new conversation alerts. AskWell posts a message when a customer starts a conversation or when an AI answer is marked unresolved. Disconnecting Slack stops new alerts but does not delete previous Slack messages."
+    },
+    {
+      "id": "crm-webhook",
+      "title": "CRM webhook integration",
+      "tags": ["integration", "webhook", "crm"],
+      "content": "The CRM webhook sends conversation.created and conversation.resolved events to a customer endpoint. Webhooks use HTTPS POST with a JSON body and an AskWell signature header. Failed deliveries are retried three times with backoff. The endpoint must return a 2xx response within ten seconds."
+    },
+    {
+      "id": "data-export",
+      "title": "Conversation and knowledge export",
+      "tags": ["export", "data"],
+      "content": "Owners and admins can export conversations as JSON from the Inbox page. Knowledge articles can be exported with the workspace export action. Exports include article titles, tags, conversation questions, answers, status, timestamps, and cited source IDs. Exports do not include payment card details or API keys."
+    },
+    {
+      "id": "retention-policy",
+      "title": "Conversation retention",
+      "tags": ["privacy", "retention"],
+      "content": "AskWell Lite keeps conversations in the workspace JSON store until an owner deletes or resets the workspace. Self hosted teams are responsible for their own backups and retention policy. The hosted roadmap will add configurable retention windows, but the Lite build does not automatically purge old conversations."
+    },
+    {
+      "id": "troubleshooting-widget",
+      "title": "Widget troubleshooting",
+      "tags": ["widget", "troubleshooting"],
+      "content": "If the widget opens but does not answer, first check that the knowledge base has indexed documents. Then verify the Node backend can reach the FastAPI AI service. For local file demos, the browser falls back to keyword answers from localStorage because remote APIs are unavailable from file URLs."
+    },
+    {
+      "id": "email-deliverability",
+      "title": "Email deliverability",
+      "tags": ["email", "deliverability"],
+      "content": "Password reset and invitation emails are sent from the AskWell transactional mailer. If delivery fails, ask the customer to check spam and allow the AskWell sending domain. Workspace owners can resend an invitation from Members settings. AskWell Lite does not include custom SMTP settings."
+    },
+    {
+      "id": "diagnostics-recovery",
+      "title": "Storage diagnostics and recovery",
+      "tags": ["diagnostics", "storage", "recovery"],
+      "content": "The diagnostics panel checks storage readability, writability, SQLite integrity, vector dimensions, document counts, chunk counts, and embedding counts. Failed ingestion attempts are shown as documents needing attention when source content is still available. Retry reuses the original document ID and preserves the last valid indexed content if embedding or storage fails."
+    },
+    {
+      "id": "api-security",
+      "title": "API security controls",
+      "tags": ["security", "api"],
+      "content": "Write APIs require the ASKWELL_ADMIN_TOKEN outside development mode. Static file serving uses an explicit allowlist and blocks private files such as data, package files, tests, server source, and environment files. The Node backend also applies rate limiting, JSON body validation, security headers, and a restrictive content security policy."
+    }
+  ],
+  "questions": [
+    {"id": "q01-trial-length", "type": "direct", "question": "How long is the free trial?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["trial-policy"], "expected_source_chunks": ["trial-policy:chunk-0"], "expected_answer_contains": ["14 day trial"]},
+    {"id": "q02-trial-card", "type": "paraphrase", "question": "Do I have to enter a credit card before testing the product?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["trial-policy"], "expected_source_chunks": ["trial-policy:chunk-0"], "expected_answer_contains": ["payment card is not required"]},
+    {"id": "q03-trial-after", "type": "direct", "question": "What happens when the trial ends?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["trial-policy"], "expected_source_chunks": ["trial-policy:chunk-0"], "expected_answer_contains": ["returns to the Free plan"]},
+    {"id": "q04-free-limits", "type": "direct", "question": "What is included in the Free plan?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["billing-plans"], "expected_source_chunks": ["billing-plans:chunk-0"], "expected_answer_contains": ["fifty conversations"]},
+    {"id": "q05-growth-limits", "type": "synonym", "question": "How many chats can the Growth subscription handle each month?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["billing-plans"], "expected_source_chunks": ["billing-plans:chunk-0"], "expected_answer_contains": ["five thousand conversations"]},
+    {"id": "q06-plan-proration", "type": "direct", "question": "Do plan changes create prorated credits?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["billing-plans"], "expected_source_chunks": ["billing-plans:chunk-0"], "expected_answer_contains": ["prorated credits"]},
+    {"id": "q07-refund-duplicate", "type": "direct", "question": "Can support review duplicate charges?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["refunds-cancel"], "expected_source_chunks": ["refunds-cancel:chunk-0"], "expected_answer_contains": ["duplicate charges within thirty days"]},
+    {"id": "q08-cancel-effect", "type": "paraphrase", "question": "If I cancel, does renewal stop right away or at period end?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["refunds-cancel"], "expected_source_chunks": ["refunds-cancel:chunk-0"], "expected_answer_contains": ["end of the current billing period"]},
+    {"id": "q09-invoice-tax", "type": "direct", "question": "Where can an owner update tax ID for invoices?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["invoice-tax"], "expected_source_chunks": ["invoice-tax:chunk-0"], "expected_answer_contains": ["Billing settings"]},
+    {"id": "q10-past-invoices", "type": "direct", "question": "Do old invoices change after I update billing details?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["invoice-tax"], "expected_source_chunks": ["invoice-tax:chunk-0"], "expected_answer_contains": ["Past invoices keep"]},
+    {"id": "q11-widget-install", "type": "direct", "question": "Where do I paste the AskWell widget script?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["widget-install"], "expected_source_chunks": ["widget-install:chunk-0"], "expected_answer_contains": ["before the closing body tag"]},
+    {"id": "q12-widget-missing", "type": "troubleshooting", "question": "The widget is missing from my website. What should I check?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["widget-install"], "expected_source_chunks": ["widget-install:chunk-0"], "expected_answer_contains": ["workspace ID is correct"]},
+    {"id": "q13-widget-brand", "type": "direct", "question": "Can I change the widget accent color and welcome message?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["widget-branding"], "expected_source_chunks": ["widget-branding:chunk-0"], "expected_answer_contains": ["accent color"]},
+    {"id": "q14-custom-css", "type": "direct", "question": "Does AskWell Lite support custom CSS for the widget?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["widget-branding"], "expected_source_chunks": ["widget-branding:chunk-0"], "expected_answer_contains": ["Custom CSS is not supported"]},
+    {"id": "q15-widget-no-answer", "type": "multi-doc", "question": "My widget opens but does not answer. Should I inspect indexed documents and the AI service?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["troubleshooting-widget", "diagnostics-recovery"], "expected_source_chunks": ["troubleshooting-widget:chunk-0", "diagnostics-recovery:chunk-0"], "expected_answer_contains": ["indexed documents"]},
+    {"id": "q16-local-file-fallback", "type": "direct", "question": "What happens for local file demos when remote APIs are unavailable?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["troubleshooting-widget"], "expected_source_chunks": ["troubleshooting-widget:chunk-0"], "expected_answer_contains": ["localStorage"]},
+    {"id": "q17-slack-channel", "type": "direct", "question": "How many Slack channels can I choose for alerts?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["slack-integration"], "expected_source_chunks": ["slack-integration:chunk-0"], "expected_answer_contains": ["one channel"]},
+    {"id": "q18-slack-disconnect", "type": "direct", "question": "Does disconnecting Slack delete old Slack messages?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["slack-integration"], "expected_source_chunks": ["slack-integration:chunk-0"], "expected_answer_contains": ["does not delete previous Slack messages"]},
+    {"id": "q19-webhook-events", "type": "direct", "question": "Which CRM webhook events are sent?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["crm-webhook"], "expected_source_chunks": ["crm-webhook:chunk-0"], "expected_answer_contains": ["conversation.created"]},
+    {"id": "q20-webhook-timeout", "type": "direct", "question": "How fast must my webhook endpoint respond?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["crm-webhook"], "expected_source_chunks": ["crm-webhook:chunk-0"], "expected_answer_contains": ["within ten seconds"]},
+    {"id": "q21-export-fields", "type": "multi-doc", "question": "What data is included in exports and are payment cards included?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["data-export", "payment-methods"], "expected_source_chunks": ["data-export:chunk-0", "payment-methods:chunk-0"], "expected_answer_contains": ["payment card details"]},
+    {"id": "q22-export-knowledge", "type": "direct", "question": "Can admins export knowledge articles?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["data-export"], "expected_source_chunks": ["data-export:chunk-0"], "expected_answer_contains": ["Knowledge articles"]},
+    {"id": "q23-retention", "type": "direct", "question": "Does AskWell Lite automatically purge old conversations?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["retention-policy"], "expected_source_chunks": ["retention-policy:chunk-0"], "expected_answer_contains": ["does not automatically purge"]},
+    {"id": "q24-backups", "type": "paraphrase", "question": "Who is responsible for backups in the self hosted Lite build?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["retention-policy"], "expected_source_chunks": ["retention-policy:chunk-0"], "expected_answer_contains": ["responsible for their own backups"]},
+    {"id": "q25-owner-permissions", "type": "direct", "question": "Can owners delete the workspace and manage billing?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["workspace-roles"], "expected_source_chunks": ["workspace-roles:chunk-0"], "expected_answer_contains": ["manage billing"]},
+    {"id": "q26-agent-permissions", "type": "direct", "question": "Can agents change billing?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["workspace-roles"], "expected_source_chunks": ["workspace-roles:chunk-0"], "expected_answer_contains": ["cannot change billing"]},
+    {"id": "q27-email-change", "type": "direct", "question": "How does a user change their email address?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["account-profile"], "expected_source_chunks": ["account-profile:chunk-0"], "expected_answer_contains": ["confirming a link"]},
+    {"id": "q28-old-inbox", "type": "paraphrase", "question": "What if someone cannot access the old mailbox for an account change?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["account-profile"], "expected_source_chunks": ["account-profile:chunk-0"], "expected_answer_contains": ["invite the new address"]},
+    {"id": "q29-reset-expiry", "type": "direct", "question": "When does a password reset link expire?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["password-recovery"], "expected_source_chunks": ["password-recovery:chunk-0"], "expected_answer_contains": ["sixty minutes"]},
+    {"id": "q30-reset-no-email", "type": "troubleshooting", "question": "I requested a reset but no email arrived. What should I do?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["password-recovery", "email-deliverability"], "expected_source_chunks": ["password-recovery:chunk-0", "email-deliverability:chunk-0"], "expected_answer_contains": ["check spam"]},
+    {"id": "q31-invite-email", "type": "direct", "question": "Can owners resend an invitation email?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["email-deliverability"], "expected_source_chunks": ["email-deliverability:chunk-0"], "expected_answer_contains": ["resend an invitation"]},
+    {"id": "q32-smtp", "type": "direct", "question": "Does AskWell Lite include custom SMTP settings?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["email-deliverability"], "expected_source_chunks": ["email-deliverability:chunk-0"], "expected_answer_contains": ["does not include custom SMTP"]},
+    {"id": "q33-diagnostics-checks", "type": "direct", "question": "What does the diagnostics panel check?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["diagnostics-recovery"], "expected_source_chunks": ["diagnostics-recovery:chunk-0"], "expected_answer_contains": ["SQLite integrity"]},
+    {"id": "q34-retry-stable-id", "type": "direct", "question": "Does retry reuse the original document ID?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["diagnostics-recovery"], "expected_source_chunks": ["diagnostics-recovery:chunk-0"], "expected_answer_contains": ["original document ID"]},
+    {"id": "q35-admin-token", "type": "direct", "question": "When is ASKWELL_ADMIN_TOKEN required?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["api-security"], "expected_source_chunks": ["api-security:chunk-0"], "expected_answer_contains": ["outside development mode"]},
+    {"id": "q36-static-allowlist", "type": "direct", "question": "Does static serving block private files?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["api-security"], "expected_source_chunks": ["api-security:chunk-0"], "expected_answer_contains": ["blocks private files"]},
+    {"id": "q37-payment-enterprise", "type": "direct", "question": "Are bank transfers available in self serve billing?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["payment-methods"], "expected_source_chunks": ["payment-methods:chunk-0"], "expected_answer_contains": ["enterprise contracts"]},
+    {"id": "q38-payment-card", "type": "synonym", "question": "Where can I swap the card on file?", "expected_answerable": true, "expected_abstain": false, "expected_relevant_documents": ["payment-methods"], "expected_source_chunks": ["payment-methods:chunk-0"], "expected_answer_contains": ["replace a payment card"]},
+    {"id": "q39-ambiguous-plan", "type": "ambiguous", "question": "Can I change it?", "expected_answerable": false, "expected_abstain": true, "expected_relevant_documents": [], "expected_source_chunks": [], "expected_answer_contains": ["insufficient"]},
+    {"id": "q40-ambiguous-settings", "type": "ambiguous", "question": "Where is the setting?", "expected_answerable": false, "expected_abstain": true, "expected_relevant_documents": [], "expected_source_chunks": [], "expected_answer_contains": ["insufficient"]},
+    {"id": "q41-sso", "type": "unanswerable", "question": "How do I configure SAML single sign on?", "expected_answerable": false, "expected_abstain": true, "expected_relevant_documents": [], "expected_source_chunks": [], "expected_answer_contains": ["insufficient"]},
+    {"id": "q42-mobile-sdk", "type": "unanswerable", "question": "Does AskWell provide an Android SDK?", "expected_answerable": false, "expected_abstain": true, "expected_relevant_documents": [], "expected_source_chunks": [], "expected_answer_contains": ["insufficient"]},
+    {"id": "q43-voice", "type": "unanswerable", "question": "Can the bot answer phone calls?", "expected_answerable": false, "expected_abstain": true, "expected_relevant_documents": [], "expected_source_chunks": [], "expected_answer_contains": ["insufficient"]},
+    {"id": "q44-partial-insufficient", "type": "partial-insufficient", "question": "Can exports include audit logs and payment card numbers?", "expected_answerable": false, "expected_abstain": true, "expected_relevant_documents": [], "expected_source_chunks": [], "expected_answer_contains": ["insufficient"]},
+    {"id": "q45-outdated-conflict", "type": "conflict", "question": "Is the old 2023 trial card policy still active?", "expected_answerable": false, "expected_abstain": true, "expected_relevant_documents": [], "expected_source_chunks": [], "expected_answer_contains": ["insufficient"]}
+  ]
+}

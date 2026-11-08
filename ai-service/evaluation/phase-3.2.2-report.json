@@ -1,0 +1,863 @@
+{
+  "name": "AskWell Phase 3.2.2 Evidence Sufficiency and Abstention Calibration",
+  "generated_at": "2026-11-07T21:31:09Z",
+  "dataset": {
+    "name": "AskWell synthetic support evaluation set",
+    "customer_data": false,
+    "documents": 10,
+    "questions": 14,
+    "question_types": [
+      "ambiguous",
+      "contextual",
+      "exact-keyword",
+      "multi-chunk",
+      "multi-source",
+      "paraphrase",
+      "partial-insufficient",
+      "synonym",
+      "unanswerable"
+    ]
+  },
+  "model_configuration": {
+    "embedding_provider": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_dimensions": 384,
+    "llm_provider_env": "extractive",
+    "llm_model": "gpt-4o-mini",
+    "llm_base_url_configured": false,
+    "llm_credentials_present": false,
+    "top_k": 3,
+    "chunk_size": 420,
+    "chunk_overlap": 80,
+    "thresholds": {
+      "bm25": 3.0,
+      "semantic": 0.38,
+      "hybrid": 0.02,
+      "semantic_margin": 0.08,
+      "query_coverage": 0.45,
+      "min_evidence_chunks": 1,
+      "min_retrieval_agreement": 1
+    }
+  },
+  "indexing": {
+    "provider": "sentence-transformers/all-MiniLM-L6-v2",
+    "dimension": 384,
+    "load_ms": 33294.77,
+    "ingest_ms": 798.55,
+    "ingested_documents": 10,
+    "indexed_chunks": 10,
+    "duplicates_skipped": 0,
+    "unchanged_skipped": 0
+  },
+  "retrieval": {
+    "metrics": {
+      "top_k": 3,
+      "latency_ms_total": 1182.27,
+      "bm25": {
+        "recall_at_3": 1.0,
+        "precision_at_3": 0.3667,
+        "mrr": 1.0,
+        "hit_rate_at_3": 1.0
+      },
+      "semantic": {
+        "recall_at_3": 1.0,
+        "precision_at_3": 0.3667,
+        "mrr": 1.0,
+        "hit_rate_at_3": 1.0
+      },
+      "hybrid": {
+        "recall_at_3": 1.0,
+        "precision_at_3": 0.3667,
+        "mrr": 1.0,
+        "hit_rate_at_3": 1.0
+      },
+      "unanswerable_abstention_rate": 1.0,
+      "unanswerable_false_positive_rate": 0.0
+    },
+    "rows": [
+      {
+        "id": "trial-length",
+        "type": "exact-keyword",
+        "question": "How long is the trial?",
+        "expected_documents": [
+          "eval-trial"
+        ],
+        "bm25": [
+          "eval-trial"
+        ],
+        "semantic": [
+          "eval-trial",
+          "eval-workspace-versioning",
+          "eval-vector-recovery"
+        ],
+        "hybrid": [
+          "eval-trial",
+          "eval-workspace-versioning",
+          "eval-vector-recovery"
+        ],
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 3.805077,
+          "best_semantic": 0.389213,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.343437,
+          "query_coverage": 0.5,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "trial-card-paraphrase",
+        "type": "paraphrase",
+        "question": "Do I need to add a credit card before testing AskWell?",
+        "expected_documents": [
+          "eval-trial"
+        ],
+        "bm25": [
+          "eval-trial",
+          "eval-widget-install"
+        ],
+        "semantic": [
+          "eval-trial",
+          "eval-widget-install",
+          "eval-billing"
+        ],
+        "hybrid": [
+          "eval-trial",
+          "eval-widget-install",
+          "eval-billing"
+        ],
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 4.867437,
+          "best_semantic": 0.622478,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.362928,
+          "query_coverage": 0.333333,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_semantic",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "widget-install-location",
+        "type": "synonym",
+        "question": "Where should the website snippet go?",
+        "expected_documents": [
+          "eval-widget-install"
+        ],
+        "bm25": [
+          "eval-widget-install",
+          "eval-ai-security"
+        ],
+        "semantic": [
+          "eval-widget-install",
+          "eval-export",
+          "eval-ai-security"
+        ],
+        "hybrid": [
+          "eval-widget-install",
+          "eval-ai-security",
+          "eval-export"
+        ],
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 5.450005,
+          "best_semantic": 0.229464,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.040401,
+          "query_coverage": 0.666667,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "widget-brand-color",
+        "type": "paraphrase",
+        "question": "Can I change the widget color and greeting?",
+        "expected_documents": [
+          "eval-widget-customization"
+        ],
+        "bm25": [
+          "eval-widget-customization",
+          "eval-inbox",
+          "eval-trial"
+        ],
+        "semantic": [
+          "eval-widget-customization",
+          "eval-widget-install",
+          "eval-inbox"
+        ],
+        "hybrid": [
+          "eval-widget-customization",
+          "eval-inbox",
+          "eval-widget-install"
+        ],
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 3.920371,
+          "best_semantic": 0.546716,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.176676,
+          "query_coverage": 0.5,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "server-side-keys",
+        "type": "contextual",
+        "question": "Can I put my AI provider key in the browser?",
+        "expected_documents": [
+          "eval-ai-security"
+        ],
+        "bm25": [
+          "eval-ai-security",
+          "eval-widget-customization",
+          "eval-vector-recovery"
+        ],
+        "semantic": [
+          "eval-ai-security",
+          "eval-vector-recovery",
+          "eval-widget-install"
+        ],
+        "hybrid": [
+          "eval-ai-security",
+          "eval-vector-recovery",
+          "eval-widget-customization"
+        ],
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 6.77317,
+          "best_semantic": 0.592003,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.346297,
+          "query_coverage": 0.666667,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "export-and-cancel",
+        "type": "multi-source",
+        "question": "If I downgrade, can I still export conversations?",
+        "expected_documents": [
+          "eval-billing",
+          "eval-export"
+        ],
+        "bm25": [
+          "eval-billing",
+          "eval-inbox",
+          "eval-export"
+        ],
+        "semantic": [
+          "eval-billing",
+          "eval-export",
+          "eval-inbox"
+        ],
+        "hybrid": [
+          "eval-billing",
+          "eval-inbox",
+          "eval-export"
+        ],
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 5.717931,
+          "best_semantic": 0.469594,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.072856,
+          "query_coverage": 0.75,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "stale-browser-save",
+        "type": "multi-chunk",
+        "question": "What happens if two browsers save the same workspace?",
+        "expected_documents": [
+          "eval-workspace-versioning"
+        ],
+        "bm25": [
+          "eval-workspace-versioning",
+          "eval-widget-install",
+          "eval-vector-recovery"
+        ],
+        "semantic": [
+          "eval-workspace-versioning",
+          "eval-billing",
+          "eval-export"
+        ],
+        "hybrid": [
+          "eval-workspace-versioning",
+          "eval-widget-install",
+          "eval-billing"
+        ],
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 3.719424,
+          "best_semantic": 0.583577,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.222186,
+          "query_coverage": 0.666667,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "private-static-files",
+        "type": "exact-keyword",
+        "question": "Should package files and the data folder be served publicly?",
+        "expected_documents": [
+          "eval-security-headers"
+        ],
+        "bm25": [
+          "eval-security-headers",
+          "eval-widget-install",
+          "eval-trial"
+        ],
+        "semantic": [
+          "eval-security-headers",
+          "eval-widget-customization",
+          "eval-export"
+        ],
+        "hybrid": [
+          "eval-security-headers",
+          "eval-widget-install",
+          "eval-widget-customization"
+        ],
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 6.666049,
+          "best_semantic": 0.477806,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.287163,
+          "query_coverage": 0.714286,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "vector-corruption",
+        "type": "synonym",
+        "question": "How do I recover from a corrupted vector index?",
+        "expected_documents": [
+          "eval-vector-recovery"
+        ],
+        "bm25": [
+          "eval-vector-recovery",
+          "eval-widget-customization",
+          "eval-widget-install"
+        ],
+        "semantic": [
+          "eval-vector-recovery",
+          "eval-inbox"
+        ],
+        "hybrid": [
+          "eval-vector-recovery",
+          "eval-widget-customization",
+          "eval-inbox"
+        ],
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 6.02993,
+          "best_semantic": 0.508536,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.502967,
+          "query_coverage": 0.5,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "inbox-reopen",
+        "type": "contextual",
+        "question": "Can a resolved support conversation be reopened?",
+        "expected_documents": [
+          "eval-inbox"
+        ],
+        "bm25": [
+          "eval-inbox",
+          "eval-trial",
+          "eval-billing"
+        ],
+        "semantic": [
+          "eval-inbox",
+          "eval-widget-install",
+          "eval-billing"
+        ],
+        "hybrid": [
+          "eval-inbox",
+          "eval-billing",
+          "eval-trial"
+        ],
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 6.74747,
+          "best_semantic": 0.501849,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.299092,
+          "query_coverage": 1.0,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "ambiguous-account",
+        "type": "ambiguous",
+        "question": "What happens to my account?",
+        "expected_documents": [],
+        "bm25": [],
+        "semantic": [
+          "eval-billing",
+          "eval-trial",
+          "eval-inbox"
+        ],
+        "hybrid": [
+          "eval-billing",
+          "eval-trial",
+          "eval-inbox"
+        ],
+        "evidence_sufficient": false,
+        "evidence_scores": {
+          "best_bm25": 0.0,
+          "best_semantic": 0.324657,
+          "best_hybrid": 0.016393,
+          "semantic_margin": 0.172509,
+          "query_coverage": 0.0,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": []
+      },
+      {
+        "id": "unanswerable-sso",
+        "type": "unanswerable",
+        "question": "How do I configure enterprise SSO?",
+        "expected_documents": [],
+        "bm25": [
+          "eval-widget-customization"
+        ],
+        "semantic": [
+          "eval-ai-security",
+          "eval-widget-customization",
+          "eval-widget-install"
+        ],
+        "hybrid": [
+          "eval-widget-customization",
+          "eval-ai-security",
+          "eval-widget-install"
+        ],
+        "evidence_sufficient": false,
+        "evidence_scores": {
+          "best_bm25": 2.016794,
+          "best_semantic": 0.221686,
+          "best_hybrid": 0.032522,
+          "semantic_margin": 0.024584,
+          "query_coverage": 0.333333,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "unanswerable-slack",
+        "type": "unanswerable",
+        "question": "How do I connect Slack notifications?",
+        "expected_documents": [],
+        "bm25": [],
+        "semantic": [
+          "eval-widget-install",
+          "eval-inbox",
+          "eval-widget-customization"
+        ],
+        "hybrid": [
+          "eval-widget-install",
+          "eval-inbox",
+          "eval-widget-customization"
+        ],
+        "evidence_sufficient": false,
+        "evidence_scores": {
+          "best_bm25": 0.0,
+          "best_semantic": 0.256825,
+          "best_hybrid": 0.016393,
+          "semantic_margin": 0.052094,
+          "query_coverage": 0.0,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": []
+      },
+      {
+        "id": "partial-widget-slack",
+        "type": "partial-insufficient",
+        "question": "Can the widget send Slack notifications after a chat?",
+        "expected_documents": [],
+        "bm25": [
+          "eval-inbox",
+          "eval-widget-install",
+          "eval-widget-customization"
+        ],
+        "semantic": [
+          "eval-widget-install",
+          "eval-inbox",
+          "eval-widget-customization"
+        ],
+        "hybrid": [
+          "eval-inbox",
+          "eval-widget-install",
+          "eval-widget-customization"
+        ],
+        "evidence_sufficient": false,
+        "evidence_scores": {
+          "best_bm25": 5.369092,
+          "best_semantic": 0.494498,
+          "best_hybrid": 0.032522,
+          "semantic_margin": 0.069681,
+          "query_coverage": 0.4,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "retrieval_agreement"
+        ]
+      }
+    ]
+  },
+  "generation": {
+    "deterministic_checks": {
+      "mode": "extractive_deterministic",
+      "answer_relevance_pass_rate": 1.0,
+      "citation_validity_rate": 1.0,
+      "expected_citation_precision": 0.5476,
+      "expected_citation_coverage": 1.0,
+      "appropriate_abstention_rate": 1.0,
+      "latency_ms_average": 0.02,
+      "rows": [
+        {
+          "id": "trial-length",
+          "expected_abstain": false,
+          "abstained": false,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 0.3333333333333333,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.06,
+          "citations": [
+            "eval-trial",
+            "eval-workspace-versioning",
+            "eval-vector-recovery"
+          ]
+        },
+        {
+          "id": "trial-card-paraphrase",
+          "expected_abstain": false,
+          "abstained": false,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 0.3333333333333333,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.04,
+          "citations": [
+            "eval-trial",
+            "eval-widget-install",
+            "eval-billing"
+          ]
+        },
+        {
+          "id": "widget-install-location",
+          "expected_abstain": false,
+          "abstained": false,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 0.3333333333333333,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.03,
+          "citations": [
+            "eval-widget-install",
+            "eval-ai-security",
+            "eval-export"
+          ]
+        },
+        {
+          "id": "widget-brand-color",
+          "expected_abstain": false,
+          "abstained": false,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 0.3333333333333333,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.03,
+          "citations": [
+            "eval-widget-customization",
+            "eval-inbox",
+            "eval-widget-install"
+          ]
+        },
+        {
+          "id": "server-side-keys",
+          "expected_abstain": false,
+          "abstained": false,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 0.3333333333333333,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.03,
+          "citations": [
+            "eval-ai-security",
+            "eval-vector-recovery",
+            "eval-widget-customization"
+          ]
+        },
+        {
+          "id": "export-and-cancel",
+          "expected_abstain": false,
+          "abstained": false,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 0.6666666666666666,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.03,
+          "citations": [
+            "eval-billing",
+            "eval-inbox",
+            "eval-export"
+          ]
+        },
+        {
+          "id": "stale-browser-save",
+          "expected_abstain": false,
+          "abstained": false,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 0.3333333333333333,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.03,
+          "citations": [
+            "eval-workspace-versioning",
+            "eval-widget-install",
+            "eval-billing"
+          ]
+        },
+        {
+          "id": "private-static-files",
+          "expected_abstain": false,
+          "abstained": false,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 0.3333333333333333,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.03,
+          "citations": [
+            "eval-security-headers",
+            "eval-widget-install",
+            "eval-widget-customization"
+          ]
+        },
+        {
+          "id": "vector-corruption",
+          "expected_abstain": false,
+          "abstained": false,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 0.3333333333333333,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.04,
+          "citations": [
+            "eval-vector-recovery",
+            "eval-widget-customization",
+            "eval-inbox"
+          ]
+        },
+        {
+          "id": "inbox-reopen",
+          "expected_abstain": false,
+          "abstained": false,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 0.3333333333333333,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.03,
+          "citations": [
+            "eval-inbox",
+            "eval-billing",
+            "eval-trial"
+          ]
+        },
+        {
+          "id": "ambiguous-account",
+          "expected_abstain": true,
+          "abstained": true,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 1.0,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.0,
+          "citations": []
+        },
+        {
+          "id": "unanswerable-sso",
+          "expected_abstain": true,
+          "abstained": true,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 1.0,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.0,
+          "citations": []
+        },
+        {
+          "id": "unanswerable-slack",
+          "expected_abstain": true,
+          "abstained": true,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 1.0,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.0,
+          "citations": []
+        },
+        {
+          "id": "partial-widget-slack",
+          "expected_abstain": true,
+          "abstained": true,
+          "answer_relevance_pass": true,
+          "citation_validity_pass": true,
+          "expected_citation_precision": 1.0,
+          "expected_citation_coverage": 1.0,
+          "appropriate_abstention_pass": true,
+          "latency_ms": 0.0,
+          "citations": []
+        }
+      ],
+      "human_reviewed_examples": {
+        "status": "not_performed",
+        "reason": "No human reviewer labels were collected during this automated run."
+      },
+      "automated_model_judge": {
+        "status": "not_configured",
+        "reason": "No separate judge model was configured; metrics are deterministic string/citation checks only."
+      }
+    },
+    "live_provider_validation": {
+      "status": "not_run",
+      "reason": "OpenAI-compatible provider credentials are not configured in the environment.",
+      "provider": "extractive",
+      "model": "gpt-4o-mini",
+      "credentials_present": false
+    }
+  },
+  "baseline_comparison": {
+    "status": "available",
+    "path": "C:\\Users\\kashish\\Documents\\ChatGPT\\project 001\\ai-service\\evaluation\\phase-3.2.1-report.json",
+    "baseline": {
+      "answerable_answer_rate": 1.0,
+      "unanswerable_abstention_rate": 0.0,
+      "ambiguous_abstention_rate": 0.0,
+      "answer_relevance": 0.7692,
+      "citation_validity": 1.0,
+      "citation_precision": 0.2821,
+      "citation_coverage": 0.7692,
+      "hybrid_recall_at_3": 1.0,
+      "hybrid_precision_at_3": 0.3667
+    },
+    "current": {
+      "answerable_answer_rate": 1.0,
+      "unanswerable_abstention_rate": 1.0,
+      "ambiguous_abstention_rate": 1.0,
+      "answer_relevance": 1.0,
+      "citation_validity": 1.0,
+      "citation_precision": 0.5476,
+      "citation_coverage": 1.0,
+      "hybrid_recall_at_3": 1.0,
+      "hybrid_precision_at_3": 0.3667
+    }
+  },
+  "failure_testing": {
+    "invalid_api_key": "pass",
+    "provider_timeout": "pass",
+    "rate_limit": "pass",
+    "invalid_citations": "pass",
+    "method": "mocked_openai_compatible_provider_contract",
+    "ai_service_unavailable": "covered_by_node_smoke_test",
+    "unanswerable_questions": "covered_by_retrieval_and_generation_metrics",
+    "insufficient_retrieved_context": "covered_by_retrieval_and_generation_metrics"
+  },
+  "known_weaknesses": [
+    "Synthetic data is useful for regression checks but does not replace production traffic evaluation.",
+    "Automated string checks do not prove LLM faithfulness.",
+    "No human-reviewed labels were collected in this run.",
+    "No model-judge assessment was run unless a separate evaluator is configured later.",
+    "Evidence thresholds are calibrated on a small synthetic corpus; treat them as defaults, not proof of production quality.",
+    "JSON vector storage remains an MVP persistence layer."
+  ]
+}

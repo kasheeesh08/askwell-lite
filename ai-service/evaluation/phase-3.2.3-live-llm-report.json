@@ -1,0 +1,456 @@
+{
+  "name": "AskWell Phase 3.2.3 Live LLM Provider Validation",
+  "generated_at": "2026-11-07T22:03:52Z",
+  "commands": {
+    "report": "python -m app.evaluation.live_provider_report",
+    "node_check": "npm run check",
+    "node_tests": "npm test",
+    "python_tests": "pytest ai-service/tests -q -rs",
+    "real_provider_test": "ASKWELL_RUN_REAL_LLM_TESTS=1 pytest ai-service/tests/test_real_llm_provider.py -q -rs"
+  },
+  "environment": {
+    "configured": {
+      "ASKWELL_LLM_PROVIDER": true,
+      "ASKWELL_LLM_MODEL": true,
+      "ASKWELL_LLM_BASE_URL": true,
+      "ASKWELL_LLM_API_KEY": true
+    },
+    "credentials_exposed": false
+  },
+  "dataset": {
+    "documents": 10,
+    "questions": 14,
+    "scenario_ids": [
+      "trial-length",
+      "trial-card-paraphrase",
+      "export-and-cancel",
+      "ambiguous-account",
+      "unanswerable-sso"
+    ],
+    "customer_data": false
+  },
+  "model_configuration": {
+    "embedding_provider": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_dimensions": 384,
+    "llm_provider": "openai",
+    "llm_model": "gpt-4.1-mini",
+    "llm_base_url_configured": true,
+    "llm_credentials_present": true
+  },
+  "retrieval": {
+    "metrics": {
+      "top_k": 3,
+      "latency_ms_total": 107.04,
+      "bm25": {
+        "recall_at_3": 1.0,
+        "precision_at_3": 0.3667,
+        "mrr": 1.0,
+        "hit_rate_at_3": 1.0
+      },
+      "semantic": {
+        "recall_at_3": 1.0,
+        "precision_at_3": 0.3667,
+        "mrr": 1.0,
+        "hit_rate_at_3": 1.0
+      },
+      "hybrid": {
+        "recall_at_3": 1.0,
+        "precision_at_3": 0.3667,
+        "mrr": 1.0,
+        "hit_rate_at_3": 1.0
+      },
+      "unanswerable_abstention_rate": 1.0,
+      "unanswerable_false_positive_rate": 0.0
+    },
+    "evidence_gate_rows": [
+      {
+        "id": "trial-length",
+        "type": "exact-keyword",
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 3.805077,
+          "best_semantic": 0.389213,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.343437,
+          "query_coverage": 0.5,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "trial-card-paraphrase",
+        "type": "paraphrase",
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 4.867437,
+          "best_semantic": 0.622478,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.362928,
+          "query_coverage": 0.333333,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_semantic",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "export-and-cancel",
+        "type": "multi-source",
+        "evidence_sufficient": true,
+        "evidence_scores": {
+          "best_bm25": 5.717931,
+          "best_semantic": 0.469594,
+          "best_hybrid": 0.032787,
+          "semantic_margin": 0.072856,
+          "query_coverage": 0.75,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ]
+      },
+      {
+        "id": "ambiguous-account",
+        "type": "ambiguous",
+        "evidence_sufficient": false,
+        "evidence_scores": {
+          "best_bm25": 0.0,
+          "best_semantic": 0.324657,
+          "best_hybrid": 0.016393,
+          "semantic_margin": 0.172509,
+          "query_coverage": 0.0,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": []
+      },
+      {
+        "id": "unanswerable-sso",
+        "type": "unanswerable",
+        "evidence_sufficient": false,
+        "evidence_scores": {
+          "best_bm25": 2.016794,
+          "best_semantic": 0.221686,
+          "best_hybrid": 0.032522,
+          "semantic_margin": 0.024584,
+          "query_coverage": 0.333333,
+          "evidence_chunks": 3,
+          "retrieval_agreement": 3
+        },
+        "evidence_signals": [
+          "retrieval_agreement"
+        ]
+      }
+    ]
+  },
+  "actual_provider_observations": {
+    "status": "completed",
+    "provider": "openai-compatible",
+    "model": "gpt-4.1-mini",
+    "request_count": 3,
+    "abstained_before_provider_call": 2,
+    "successful_generation_count": 3,
+    "latency_ms_average": 1493.17,
+    "token_usage_total": {
+      "prompt_tokens": 1094,
+      "completion_tokens": 177,
+      "total_tokens": 1271
+    },
+    "answer_relevance": 0.6667,
+    "citation_validity": 1.0,
+    "citation_coverage": 1.0,
+    "results": [
+      {
+        "id": "trial-length",
+        "type": "exact-keyword",
+        "question": "How long is the trial?",
+        "expected_answer_contains": [
+          "14 day trial",
+          "14 days"
+        ],
+        "retrieved_evidence": [
+          {
+            "chunk_id": "eval-trial:chunk-0",
+            "document_id": "eval-trial",
+            "title": "Trial terms",
+            "score": 0.032787,
+            "strategy": "hybrid",
+            "text": "AskWell offers a 14 day trial. A payment card is not required during the trial. Trial workspaces include one admin seat, the support widget, and up to twenty knowledge articles. Trial data can be exported before the trial ends."
+          },
+          {
+            "chunk_id": "eval-workspace-versioning:chunk-0",
+            "document_id": "eval-workspace-versioning",
+            "title": "Workspace version conflicts",
+            "score": 0.016129,
+            "strategy": "hybrid",
+            "text": "Every server workspace response includes a numeric version. Save requests must include the expected version. If another browser saved first, the server returns 409 Conflict with the latest workspace so stale data cannot silently overwrite newer changes."
+          },
+          {
+            "chunk_id": "eval-vector-recovery:chunk-0",
+            "document_id": "eval-vector-recovery",
+            "title": "Vector index recovery",
+            "score": 0.015873,
+            "strategy": "hybrid",
+            "text": "If the AI vector storage JSON is corrupted, stop the AI service, preserve the broken file for inspection, remove or repair the vector file, and re-ingest source documents from the workspace or evaluation corpus."
+          }
+        ],
+        "status": "ok",
+        "latency_ms": 1567.47,
+        "token_usage": {
+          "prompt_tokens": 368,
+          "completion_tokens": 46,
+          "total_tokens": 414
+        },
+        "citations": [
+          "eval-trial:chunk-0"
+        ],
+        "answer": "The trial lasts for 14 days. No payment card is required during the trial.",
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_coverage": 1.0
+      },
+      {
+        "id": "trial-card-paraphrase",
+        "type": "paraphrase",
+        "question": "Do I need to add a credit card before testing AskWell?",
+        "expected_answer_contains": [
+          "payment card is not required",
+          "card is not required",
+          "no credit card",
+          "without adding a card"
+        ],
+        "retrieved_evidence": [
+          {
+            "chunk_id": "eval-trial:chunk-0",
+            "document_id": "eval-trial",
+            "title": "Trial terms",
+            "score": 0.032787,
+            "strategy": "hybrid",
+            "text": "AskWell offers a 14 day trial. A payment card is not required during the trial. Trial workspaces include one admin seat, the support widget, and up to twenty knowledge articles. Trial data can be exported before the trial ends."
+          },
+          {
+            "chunk_id": "eval-widget-install:chunk-0",
+            "document_id": "eval-widget-install",
+            "title": "Widget installation",
+            "score": 0.032258,
+            "strategy": "hybrid",
+            "text": "Install the chat widget by pasting the AskWell widget script snippet before the closing body tag on the customer's website. The widget script should be served from the same deployment as the dashboard unless a trusted CDN is configured."
+          },
+          {
+            "chunk_id": "eval-billing:chunk-0",
+            "document_id": "eval-billing",
+            "title": "Cancel or downgrade",
+            "score": 0.015873,
+            "strategy": "hybrid",
+            "text": "Workspace owners can cancel or downgrade from billing settings. Free workspaces keep their knowledge base and can export conversations. Downgrading does not delete articles, but paid automation and higher usage limits stop at the end of the billing period."
+          }
+        ],
+        "status": "ok",
+        "latency_ms": 1349.34,
+        "token_usage": {
+          "prompt_tokens": 374,
+          "completion_tokens": 57,
+          "total_tokens": 431
+        },
+        "citations": [
+          "eval-trial:chunk-0"
+        ],
+        "answer": "No, you do not need to add a credit card before testing AskWell. The 14-day trial does not require a payment card.",
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_coverage": 1.0
+      },
+      {
+        "id": "export-and-cancel",
+        "type": "multi-source",
+        "question": "If I downgrade, can I still export conversations?",
+        "expected_answer_contains": [
+          "export",
+          "Free workspaces"
+        ],
+        "retrieved_evidence": [
+          {
+            "chunk_id": "eval-billing:chunk-0",
+            "document_id": "eval-billing",
+            "title": "Cancel or downgrade",
+            "score": 0.032787,
+            "strategy": "hybrid",
+            "text": "Workspace owners can cancel or downgrade from billing settings. Free workspaces keep their knowledge base and can export conversations. Downgrading does not delete articles, but paid automation and higher usage limits stop at the end of the billing period."
+          },
+          {
+            "chunk_id": "eval-inbox:chunk-0",
+            "document_id": "eval-inbox",
+            "title": "Conversation inbox states",
+            "score": 0.032002,
+            "strategy": "hybrid",
+            "text": "The inbox lists customer conversations created by the preview chat and widget. Support teammates can mark a conversation resolved after follow-up, then reopen it if more customer action is needed."
+          },
+          {
+            "chunk_id": "eval-export:chunk-0",
+            "document_id": "eval-export",
+            "title": "Export workspace data",
+            "score": 0.032002,
+            "strategy": "hybrid",
+            "text": "Use the dashboard export action to download workspace settings, knowledge articles, conversations, and the workspace version as JSON. Exports are intended for backup, review, and migration into a future database."
+          }
+        ],
+        "status": "ok",
+        "latency_ms": 1562.69,
+        "token_usage": {
+          "prompt_tokens": 352,
+          "completion_tokens": 74,
+          "total_tokens": 426
+        },
+        "citations": [
+          "eval-billing:chunk-0",
+          "eval-export:chunk-0"
+        ],
+        "answer": "Yes, if you downgrade to a free workspace, you can still export conversations. Downgrading does not delete articles or conversations, and free workspaces retain the ability to export conversations.",
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_coverage": 1.0
+      },
+      {
+        "id": "ambiguous-account",
+        "type": "ambiguous",
+        "question": "What happens to my account?",
+        "expected_answer_contains": [
+          "insufficient"
+        ],
+        "retrieved_evidence": [
+          {
+            "chunk_id": "eval-billing:chunk-0",
+            "document_id": "eval-billing",
+            "title": "Cancel or downgrade",
+            "score": 0.016393,
+            "strategy": "hybrid",
+            "text": "Workspace owners can cancel or downgrade from billing settings. Free workspaces keep their knowledge base and can export conversations. Downgrading does not delete articles, but paid automation and higher usage limits stop at the end of the billing period."
+          },
+          {
+            "chunk_id": "eval-trial:chunk-0",
+            "document_id": "eval-trial",
+            "title": "Trial terms",
+            "score": 0.016129,
+            "strategy": "hybrid",
+            "text": "AskWell offers a 14 day trial. A payment card is not required during the trial. Trial workspaces include one admin seat, the support widget, and up to twenty knowledge articles. Trial data can be exported before the trial ends."
+          },
+          {
+            "chunk_id": "eval-inbox:chunk-0",
+            "document_id": "eval-inbox",
+            "title": "Conversation inbox states",
+            "score": 0.015873,
+            "strategy": "hybrid",
+            "text": "The inbox lists customer conversations created by the preview chat and widget. Support teammates can mark a conversation resolved after follow-up, then reopen it if more customer action is needed."
+          }
+        ],
+        "status": "abstained_before_provider_call",
+        "latency_ms": 0.0,
+        "token_usage": null,
+        "citations": []
+      },
+      {
+        "id": "unanswerable-sso",
+        "type": "unanswerable",
+        "question": "How do I configure enterprise SSO?",
+        "expected_answer_contains": [
+          "insufficient"
+        ],
+        "retrieved_evidence": [
+          {
+            "chunk_id": "eval-widget-customization:chunk-0",
+            "document_id": "eval-widget-customization",
+            "title": "Widget customization",
+            "score": 0.032522,
+            "strategy": "hybrid",
+            "text": "Workspace owners can configure the widget brand name, accent color, and welcome message from the Install tab. The widget reads those public settings only; it must not receive private admin tokens or provider credentials."
+          },
+          {
+            "chunk_id": "eval-ai-security:chunk-0",
+            "document_id": "eval-ai-security",
+            "title": "Connect an AI model securely",
+            "score": 0.016393,
+            "strategy": "hybrid",
+            "text": "Production AI keys must stay on the server. The browser should call the Node backend, and the Node backend should call the AI service. Never place OpenAI-compatible provider keys in localStorage, widget configuration, exported workspace JSON, or public JavaScript."
+          },
+          {
+            "chunk_id": "eval-widget-install:chunk-0",
+            "document_id": "eval-widget-install",
+            "title": "Widget installation",
+            "score": 0.015873,
+            "strategy": "hybrid",
+            "text": "Install the chat widget by pasting the AskWell widget script snippet before the closing body tag on the customer's website. The widget script should be served from the same deployment as the dashboard unless a trusted CDN is configured."
+          }
+        ],
+        "status": "abstained_before_provider_call",
+        "latency_ms": 0.0,
+        "token_usage": null,
+        "citations": []
+      }
+    ]
+  },
+  "before_after_quality_comparison": {
+    "before": {
+      "status": "available",
+      "path": "C:\\Users\\kashish\\Documents\\ChatGPT\\project 001\\ai-service\\evaluation\\phase-3.2.3-live-llm-report-before-quality-fix.json",
+      "provider_status": "completed",
+      "successful_generation_count": 3,
+      "abstained_before_provider_call": 2,
+      "answer_relevance": 0.3333,
+      "citation_validity": 1.0,
+      "citation_coverage": 1.0,
+      "failed_relevance_ids": [
+        "trial-length",
+        "trial-card-paraphrase"
+      ]
+    },
+    "after": {
+      "provider_status": "completed",
+      "successful_generation_count": 3,
+      "abstained_before_provider_call": 2,
+      "answer_relevance": 0.6667,
+      "citation_validity": 1.0,
+      "citation_coverage": 1.0,
+      "failed_relevance_ids": [
+        "trial-card-paraphrase"
+      ]
+    }
+  },
+  "mocked_contract_tests": {
+    "status": "covered_by_deterministic_tests",
+    "checks": {
+      "invalid_api_key": "pass",
+      "provider_timeout": "pass",
+      "rate_limit": "pass",
+      "invalid_citations": "pass",
+      "method": "mocked_openai_compatible_provider_contract",
+      "ai_service_unavailable": "covered_by_node_smoke_test",
+      "unanswerable_questions": "covered_by_retrieval_and_generation_metrics",
+      "insufficient_retrieved_context": "covered_by_retrieval_and_generation_metrics"
+    },
+    "distinction": "These are mocked OpenAI-compatible provider contract checks, not live provider observations."
+  },
+  "deterministic_generation_baseline": {
+    "answer_relevance": 1.0,
+    "citation_validity": 1.0,
+    "citation_precision": 0.5476,
+    "citation_coverage": 1.0,
+    "appropriate_abstention": 1.0
+  },
+  "limitations": [
+    "Live provider validation is skipped unless all required provider environment variables are configured.",
+    "Successful integration tests do not prove production readiness or answer faithfulness.",
+    "The synthetic corpus is small and separate from the user's actual workspace data.",
+    "Timeout and rate-limit behavior are covered with mocks because intentionally triggering live provider failures can be noisy or costly."
+  ]
+}

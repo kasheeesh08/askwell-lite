@@ -1,0 +1,3990 @@
+{
+  "name": "AskWell Phase 3.6 End-to-End Integration and Evaluation",
+  "generated_at": "2026-11-08T05:28:11Z",
+  "dataset": {
+    "name": "AskWell Phase 3.6 Synthetic Integration Corpus",
+    "customer_data": false,
+    "documents": 18,
+    "questions": 45,
+    "question_types": [
+      "ambiguous",
+      "conflict",
+      "direct",
+      "multi-doc",
+      "paraphrase",
+      "partial-insufficient",
+      "synonym",
+      "troubleshooting",
+      "unanswerable"
+    ]
+  },
+  "architecture_inspected": [
+    "plain JavaScript frontend state/API/render modules",
+    "Node.js static server and AI proxy",
+    "FastAPI ingest/documents/diagnostics/answer endpoints",
+    "SQLite and JSON vector stores",
+    "BM25, semantic, hybrid RRF retrieval",
+    "evidence sufficiency and abstention",
+    "extractive and OpenAI-compatible generation contracts",
+    "citation validation",
+    "document lifecycle and diagnostics"
+  ],
+  "environment": {
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "live_llm_api_calls": 0
+  },
+  "indexing": {
+    "backend": "sqlite",
+    "embedding_provider": "token-hash-test-provider",
+    "embedding_dimensions": 64,
+    "documents_ingested": 18,
+    "chunks_indexed": 18,
+    "duplicates_skipped": 0,
+    "unchanged_skipped": 0,
+    "snapshot_chunks": 18,
+    "snapshot_vectors": 18,
+    "initial_ingest_ms": 40.18
+  },
+  "storage_diagnostics": {
+    "status": "healthy",
+    "backend": "sqlite",
+    "document_count": 18,
+    "chunk_count": 18,
+    "embedding_count": 18,
+    "integrity_check": "ok",
+    "latency_ms": 6.82
+  },
+  "retrieval": {
+    "question_count": 45,
+    "document_level": {
+      "bm25": {
+        "recall_at_3": 0.9605,
+        "precision_at_3": 0.3421,
+        "mrr": 0.9496,
+        "hit_rate_at_3": 0.9737,
+        "recall_at_5": 0.9868,
+        "precision_at_5": 0.2105,
+        "hit_rate_at_5": 1.0
+      },
+      "semantic": {
+        "recall_at_3": 0.6974,
+        "precision_at_3": 0.2456,
+        "mrr": 0.668,
+        "hit_rate_at_3": 0.7368,
+        "recall_at_5": 0.8816,
+        "precision_at_5": 0.1842,
+        "hit_rate_at_5": 0.9211
+      },
+      "hybrid": {
+        "recall_at_3": 0.9605,
+        "precision_at_3": 0.3333,
+        "mrr": 0.8509,
+        "hit_rate_at_3": 1.0,
+        "recall_at_5": 0.9868,
+        "precision_at_5": 0.2105,
+        "hit_rate_at_5": 1.0
+      }
+    },
+    "chunk_level": {
+      "bm25": {
+        "recall_at_3": 0.9605,
+        "precision_at_3": 0.3421,
+        "mrr": 0.9496,
+        "hit_rate_at_3": 0.9737,
+        "recall_at_5": 0.9868,
+        "precision_at_5": 0.2105,
+        "hit_rate_at_5": 1.0
+      },
+      "semantic": {
+        "recall_at_3": 0.6974,
+        "precision_at_3": 0.2456,
+        "mrr": 0.668,
+        "hit_rate_at_3": 0.7368,
+        "recall_at_5": 0.8816,
+        "precision_at_5": 0.1842,
+        "hit_rate_at_5": 0.9211
+      },
+      "hybrid": {
+        "recall_at_3": 0.9605,
+        "precision_at_3": 0.3333,
+        "mrr": 0.8509,
+        "hit_rate_at_3": 1.0,
+        "recall_at_5": 0.9868,
+        "precision_at_5": 0.2105,
+        "hit_rate_at_5": 1.0
+      }
+    },
+    "multi_document_success_at_5": 0.6667,
+    "category_breakdown": {
+      "ambiguous": {
+        "questions": 2,
+        "hybrid_recall_at_3": 0.0,
+        "hybrid_hit_rate_at_3": 0.0
+      },
+      "conflict": {
+        "questions": 1,
+        "hybrid_recall_at_3": 0.0,
+        "hybrid_hit_rate_at_3": 0.0
+      },
+      "direct": {
+        "questions": 28,
+        "hybrid_recall_at_3": 1.0,
+        "hybrid_hit_rate_at_3": 1.0
+      },
+      "multi-doc": {
+        "questions": 2,
+        "hybrid_recall_at_3": 0.5,
+        "hybrid_hit_rate_at_3": 1.0
+      },
+      "paraphrase": {
+        "questions": 4,
+        "hybrid_recall_at_3": 1.0,
+        "hybrid_hit_rate_at_3": 1.0
+      },
+      "partial-insufficient": {
+        "questions": 1,
+        "hybrid_recall_at_3": 0.0,
+        "hybrid_hit_rate_at_3": 0.0
+      },
+      "synonym": {
+        "questions": 2,
+        "hybrid_recall_at_3": 1.0,
+        "hybrid_hit_rate_at_3": 1.0
+      },
+      "troubleshooting": {
+        "questions": 2,
+        "hybrid_recall_at_3": 0.75,
+        "hybrid_hit_rate_at_3": 1.0
+      },
+      "unanswerable": {
+        "questions": 3,
+        "hybrid_recall_at_3": 0.0,
+        "hybrid_hit_rate_at_3": 0.0
+      }
+    },
+    "latency_ms": {
+      "mean": 1.27,
+      "median": 1.15,
+      "p95": 2.5
+    },
+    "rows": [
+      {
+        "id": "q01-trial-length",
+        "type": "direct",
+        "question": "How long is the free trial?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "trial-policy"
+        ],
+        "expected_chunks": [
+          "trial-policy:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "trial-policy",
+            "billing-plans",
+            "refunds-cancel"
+          ],
+          "chunks": [
+            "trial-policy:chunk-0",
+            "billing-plans:chunk-0",
+            "refunds-cancel:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "trial-policy",
+            "widget-install",
+            "email-deliverability",
+            "diagnostics-recovery",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "trial-policy:chunk-0",
+            "widget-install:chunk-0",
+            "email-deliverability:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "trial-policy",
+            "billing-plans",
+            "widget-install",
+            "refunds-cancel",
+            "email-deliverability"
+          ],
+          "chunks": [
+            "trial-policy:chunk-0",
+            "billing-plans:chunk-0",
+            "widget-install:chunk-0",
+            "refunds-cancel:chunk-0",
+            "email-deliverability:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.73
+      },
+      {
+        "id": "q02-trial-card",
+        "type": "paraphrase",
+        "question": "Do I have to enter a credit card before testing the product?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "trial-policy"
+        ],
+        "expected_chunks": [
+          "trial-policy:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "payment-methods",
+            "invoice-tax",
+            "trial-policy",
+            "widget-branding",
+            "data-export"
+          ],
+          "chunks": [
+            "payment-methods:chunk-0",
+            "invoice-tax:chunk-0",
+            "trial-policy:chunk-0",
+            "widget-branding:chunk-0",
+            "data-export:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "account-profile",
+            "diagnostics-recovery",
+            "password-recovery",
+            "payment-methods",
+            "trial-policy"
+          ],
+          "chunks": [
+            "account-profile:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "password-recovery:chunk-0",
+            "payment-methods:chunk-0",
+            "trial-policy:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "payment-methods",
+            "trial-policy",
+            "account-profile",
+            "invoice-tax",
+            "diagnostics-recovery"
+          ],
+          "chunks": [
+            "payment-methods:chunk-0",
+            "trial-policy:chunk-0",
+            "account-profile:chunk-0",
+            "invoice-tax:chunk-0",
+            "diagnostics-recovery:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_semantic",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.6
+      },
+      {
+        "id": "q03-trial-after",
+        "type": "direct",
+        "question": "What happens when the trial ends?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "trial-policy"
+        ],
+        "expected_chunks": [
+          "trial-policy:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "trial-policy",
+            "slack-integration",
+            "invoice-tax",
+            "diagnostics-recovery"
+          ],
+          "chunks": [
+            "trial-policy:chunk-0",
+            "slack-integration:chunk-0",
+            "invoice-tax:chunk-0",
+            "diagnostics-recovery:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "trial-policy",
+            "troubleshooting-widget",
+            "api-security",
+            "crm-webhook",
+            "widget-install"
+          ],
+          "chunks": [
+            "trial-policy:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "api-security:chunk-0",
+            "crm-webhook:chunk-0",
+            "widget-install:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "trial-policy",
+            "slack-integration",
+            "troubleshooting-widget",
+            "invoice-tax",
+            "api-security"
+          ],
+          "chunks": [
+            "trial-policy:chunk-0",
+            "slack-integration:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "invoice-tax:chunk-0",
+            "api-security:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.33
+      },
+      {
+        "id": "q04-free-limits",
+        "type": "direct",
+        "question": "What is included in the Free plan?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "billing-plans"
+        ],
+        "expected_chunks": [
+          "billing-plans:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "trial-policy",
+            "billing-plans",
+            "refunds-cancel",
+            "invoice-tax",
+            "password-recovery"
+          ],
+          "chunks": [
+            "trial-policy:chunk-0",
+            "billing-plans:chunk-0",
+            "refunds-cancel:chunk-0",
+            "invoice-tax:chunk-0",
+            "password-recovery:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "widget-install",
+            "trial-policy",
+            "troubleshooting-widget",
+            "api-security",
+            "retention-policy"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "trial-policy:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "api-security:chunk-0",
+            "retention-policy:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "trial-policy",
+            "widget-install",
+            "billing-plans",
+            "refunds-cancel",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "trial-policy:chunk-0",
+            "widget-install:chunk-0",
+            "billing-plans:chunk-0",
+            "refunds-cancel:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.27
+      },
+      {
+        "id": "q05-growth-limits",
+        "type": "synonym",
+        "question": "How many chats can the Growth subscription handle each month?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "billing-plans"
+        ],
+        "expected_chunks": [
+          "billing-plans:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "billing-plans",
+            "invoice-tax",
+            "slack-integration",
+            "trial-policy",
+            "workspace-roles"
+          ],
+          "chunks": [
+            "billing-plans:chunk-0",
+            "invoice-tax:chunk-0",
+            "slack-integration:chunk-0",
+            "trial-policy:chunk-0",
+            "workspace-roles:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "workspace-roles",
+            "diagnostics-recovery",
+            "account-profile",
+            "email-deliverability",
+            "invoice-tax"
+          ],
+          "chunks": [
+            "workspace-roles:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "account-profile:chunk-0",
+            "email-deliverability:chunk-0",
+            "invoice-tax:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "workspace-roles",
+            "invoice-tax",
+            "billing-plans",
+            "diagnostics-recovery",
+            "slack-integration"
+          ],
+          "chunks": [
+            "workspace-roles:chunk-0",
+            "invoice-tax:chunk-0",
+            "billing-plans:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "slack-integration:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.34
+      },
+      {
+        "id": "q06-plan-proration",
+        "type": "direct",
+        "question": "Do plan changes create prorated credits?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "billing-plans"
+        ],
+        "expected_chunks": [
+          "billing-plans:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "billing-plans",
+            "trial-policy",
+            "account-profile",
+            "refunds-cancel"
+          ],
+          "chunks": [
+            "billing-plans:chunk-0",
+            "trial-policy:chunk-0",
+            "account-profile:chunk-0",
+            "refunds-cancel:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "widget-install",
+            "billing-plans",
+            "troubleshooting-widget",
+            "crm-webhook",
+            "trial-policy"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "billing-plans:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "crm-webhook:chunk-0",
+            "trial-policy:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "billing-plans",
+            "trial-policy",
+            "widget-install",
+            "account-profile",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "billing-plans:chunk-0",
+            "trial-policy:chunk-0",
+            "widget-install:chunk-0",
+            "account-profile:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.31
+      },
+      {
+        "id": "q07-refund-duplicate",
+        "type": "direct",
+        "question": "Can support review duplicate charges?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "refunds-cancel"
+        ],
+        "expected_chunks": [
+          "refunds-cancel:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "refunds-cancel",
+            "widget-install",
+            "workspace-roles",
+            "data-export",
+            "payment-methods"
+          ],
+          "chunks": [
+            "refunds-cancel:chunk-0",
+            "widget-install:chunk-0",
+            "workspace-roles:chunk-0",
+            "data-export:chunk-0",
+            "payment-methods:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "refunds-cancel",
+            "diagnostics-recovery",
+            "payment-methods",
+            "email-deliverability",
+            "data-export"
+          ],
+          "chunks": [
+            "refunds-cancel:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "payment-methods:chunk-0",
+            "email-deliverability:chunk-0",
+            "data-export:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "refunds-cancel",
+            "payment-methods",
+            "data-export",
+            "widget-install",
+            "diagnostics-recovery"
+          ],
+          "chunks": [
+            "refunds-cancel:chunk-0",
+            "payment-methods:chunk-0",
+            "data-export:chunk-0",
+            "widget-install:chunk-0",
+            "diagnostics-recovery:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 2.89
+      },
+      {
+        "id": "q08-cancel-effect",
+        "type": "paraphrase",
+        "question": "If I cancel, does renewal stop right away or at period end?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "refunds-cancel"
+        ],
+        "expected_chunks": [
+          "refunds-cancel:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "refunds-cancel",
+            "password-recovery",
+            "email-deliverability",
+            "account-profile",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "refunds-cancel:chunk-0",
+            "password-recovery:chunk-0",
+            "email-deliverability:chunk-0",
+            "account-profile:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "password-recovery",
+            "account-profile",
+            "refunds-cancel",
+            "email-deliverability",
+            "billing-plans"
+          ],
+          "chunks": [
+            "password-recovery:chunk-0",
+            "account-profile:chunk-0",
+            "refunds-cancel:chunk-0",
+            "email-deliverability:chunk-0",
+            "billing-plans:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "password-recovery",
+            "refunds-cancel",
+            "account-profile",
+            "email-deliverability",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "password-recovery:chunk-0",
+            "refunds-cancel:chunk-0",
+            "account-profile:chunk-0",
+            "email-deliverability:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.44
+      },
+      {
+        "id": "q09-invoice-tax",
+        "type": "direct",
+        "question": "Where can an owner update tax ID for invoices?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "invoice-tax"
+        ],
+        "expected_chunks": [
+          "invoice-tax:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "invoice-tax",
+            "account-profile",
+            "widget-install",
+            "retention-policy",
+            "payment-methods"
+          ],
+          "chunks": [
+            "invoice-tax:chunk-0",
+            "account-profile:chunk-0",
+            "widget-install:chunk-0",
+            "retention-policy:chunk-0",
+            "payment-methods:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "diagnostics-recovery",
+            "invoice-tax",
+            "troubleshooting-widget",
+            "account-profile",
+            "refunds-cancel"
+          ],
+          "chunks": [
+            "diagnostics-recovery:chunk-0",
+            "invoice-tax:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "account-profile:chunk-0",
+            "refunds-cancel:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "invoice-tax",
+            "account-profile",
+            "diagnostics-recovery",
+            "widget-install",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "invoice-tax:chunk-0",
+            "account-profile:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "widget-install:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.92
+      },
+      {
+        "id": "q10-past-invoices",
+        "type": "direct",
+        "question": "Do old invoices change after I update billing details?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "invoice-tax"
+        ],
+        "expected_chunks": [
+          "invoice-tax:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "invoice-tax",
+            "account-profile",
+            "workspace-roles",
+            "payment-methods",
+            "widget-branding"
+          ],
+          "chunks": [
+            "invoice-tax:chunk-0",
+            "account-profile:chunk-0",
+            "workspace-roles:chunk-0",
+            "payment-methods:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "account-profile",
+            "invoice-tax",
+            "password-recovery",
+            "workspace-roles",
+            "data-export"
+          ],
+          "chunks": [
+            "account-profile:chunk-0",
+            "invoice-tax:chunk-0",
+            "password-recovery:chunk-0",
+            "workspace-roles:chunk-0",
+            "data-export:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "invoice-tax",
+            "account-profile",
+            "workspace-roles",
+            "password-recovery",
+            "payment-methods"
+          ],
+          "chunks": [
+            "invoice-tax:chunk-0",
+            "account-profile:chunk-0",
+            "workspace-roles:chunk-0",
+            "password-recovery:chunk-0",
+            "payment-methods:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.55
+      },
+      {
+        "id": "q11-widget-install",
+        "type": "direct",
+        "question": "Where do I paste the AskWell widget script?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "widget-install"
+        ],
+        "expected_chunks": [
+          "widget-install:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "widget-install",
+            "widget-branding",
+            "workspace-roles",
+            "billing-plans",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "widget-branding:chunk-0",
+            "workspace-roles:chunk-0",
+            "billing-plans:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "widget-install",
+            "workspace-roles",
+            "email-deliverability",
+            "trial-policy",
+            "widget-branding"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "workspace-roles:chunk-0",
+            "email-deliverability:chunk-0",
+            "trial-policy:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "widget-install",
+            "workspace-roles",
+            "widget-branding",
+            "email-deliverability",
+            "billing-plans"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "workspace-roles:chunk-0",
+            "widget-branding:chunk-0",
+            "email-deliverability:chunk-0",
+            "billing-plans:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.49
+      },
+      {
+        "id": "q12-widget-missing",
+        "type": "troubleshooting",
+        "question": "The widget is missing from my website. What should I check?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "widget-install"
+        ],
+        "expected_chunks": [
+          "widget-install:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "widget-install",
+            "troubleshooting-widget",
+            "widget-branding",
+            "email-deliverability",
+            "password-recovery"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "widget-branding:chunk-0",
+            "email-deliverability:chunk-0",
+            "password-recovery:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "widget-install",
+            "widget-branding",
+            "trial-policy",
+            "retention-policy",
+            "account-profile"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "widget-branding:chunk-0",
+            "trial-policy:chunk-0",
+            "retention-policy:chunk-0",
+            "account-profile:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "widget-install",
+            "widget-branding",
+            "troubleshooting-widget",
+            "trial-policy",
+            "email-deliverability"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "widget-branding:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "trial-policy:chunk-0",
+            "email-deliverability:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.96
+      },
+      {
+        "id": "q13-widget-brand",
+        "type": "direct",
+        "question": "Can I change the widget accent color and welcome message?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "widget-branding"
+        ],
+        "expected_chunks": [
+          "widget-branding:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "widget-branding",
+            "workspace-roles",
+            "slack-integration",
+            "widget-install",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "widget-branding:chunk-0",
+            "workspace-roles:chunk-0",
+            "slack-integration:chunk-0",
+            "widget-install:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "widget-branding",
+            "api-security",
+            "workspace-roles",
+            "diagnostics-recovery",
+            "password-recovery"
+          ],
+          "chunks": [
+            "widget-branding:chunk-0",
+            "api-security:chunk-0",
+            "workspace-roles:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "password-recovery:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "widget-branding",
+            "workspace-roles",
+            "api-security",
+            "slack-integration",
+            "widget-install"
+          ],
+          "chunks": [
+            "widget-branding:chunk-0",
+            "workspace-roles:chunk-0",
+            "api-security:chunk-0",
+            "slack-integration:chunk-0",
+            "widget-install:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.39
+      },
+      {
+        "id": "q14-custom-css",
+        "type": "direct",
+        "question": "Does AskWell Lite support custom CSS for the widget?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "widget-branding"
+        ],
+        "expected_chunks": [
+          "widget-branding:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "widget-branding",
+            "email-deliverability",
+            "widget-install",
+            "retention-policy",
+            "refunds-cancel"
+          ],
+          "chunks": [
+            "widget-branding:chunk-0",
+            "email-deliverability:chunk-0",
+            "widget-install:chunk-0",
+            "retention-policy:chunk-0",
+            "refunds-cancel:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "retention-policy",
+            "email-deliverability",
+            "refunds-cancel",
+            "widget-branding",
+            "widget-install"
+          ],
+          "chunks": [
+            "retention-policy:chunk-0",
+            "email-deliverability:chunk-0",
+            "refunds-cancel:chunk-0",
+            "widget-branding:chunk-0",
+            "widget-install:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "email-deliverability",
+            "widget-branding",
+            "retention-policy",
+            "widget-install",
+            "refunds-cancel"
+          ],
+          "chunks": [
+            "email-deliverability:chunk-0",
+            "widget-branding:chunk-0",
+            "retention-policy:chunk-0",
+            "widget-install:chunk-0",
+            "refunds-cancel:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.38
+      },
+      {
+        "id": "q15-widget-no-answer",
+        "type": "multi-doc",
+        "question": "My widget opens but does not answer. Should I inspect indexed documents and the AI service?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "troubleshooting-widget",
+          "diagnostics-recovery"
+        ],
+        "expected_chunks": [
+          "troubleshooting-widget:chunk-0",
+          "diagnostics-recovery:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "troubleshooting-widget",
+            "slack-integration",
+            "workspace-roles",
+            "widget-install",
+            "widget-branding"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "slack-integration:chunk-0",
+            "workspace-roles:chunk-0",
+            "widget-install:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "troubleshooting-widget",
+            "trial-policy",
+            "widget-branding",
+            "widget-install",
+            "email-deliverability"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "trial-policy:chunk-0",
+            "widget-branding:chunk-0",
+            "widget-install:chunk-0",
+            "email-deliverability:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "troubleshooting-widget",
+            "widget-branding",
+            "widget-install",
+            "slack-integration",
+            "trial-policy"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "widget-branding:chunk-0",
+            "widget-install:chunk-0",
+            "slack-integration:chunk-0",
+            "trial-policy:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.54
+      },
+      {
+        "id": "q16-local-file-fallback",
+        "type": "direct",
+        "question": "What happens for local file demos when remote APIs are unavailable?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "troubleshooting-widget"
+        ],
+        "expected_chunks": [
+          "troubleshooting-widget:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "troubleshooting-widget",
+            "api-security",
+            "slack-integration",
+            "payment-methods",
+            "invoice-tax"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "api-security:chunk-0",
+            "slack-integration:chunk-0",
+            "payment-methods:chunk-0",
+            "invoice-tax:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "troubleshooting-widget",
+            "crm-webhook",
+            "slack-integration",
+            "password-recovery",
+            "payment-methods"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "crm-webhook:chunk-0",
+            "slack-integration:chunk-0",
+            "password-recovery:chunk-0",
+            "payment-methods:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "troubleshooting-widget",
+            "slack-integration",
+            "payment-methods",
+            "api-security",
+            "crm-webhook"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "slack-integration:chunk-0",
+            "payment-methods:chunk-0",
+            "api-security:chunk-0",
+            "crm-webhook:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.63
+      },
+      {
+        "id": "q17-slack-channel",
+        "type": "direct",
+        "question": "How many Slack channels can I choose for alerts?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "slack-integration"
+        ],
+        "expected_chunks": [
+          "slack-integration:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "slack-integration",
+            "trial-policy",
+            "billing-plans",
+            "payment-methods",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "slack-integration:chunk-0",
+            "trial-policy:chunk-0",
+            "billing-plans:chunk-0",
+            "payment-methods:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "payment-methods",
+            "refunds-cancel",
+            "diagnostics-recovery",
+            "data-export",
+            "slack-integration"
+          ],
+          "chunks": [
+            "payment-methods:chunk-0",
+            "refunds-cancel:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "data-export:chunk-0",
+            "slack-integration:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "payment-methods",
+            "slack-integration",
+            "trial-policy",
+            "refunds-cancel",
+            "billing-plans"
+          ],
+          "chunks": [
+            "payment-methods:chunk-0",
+            "slack-integration:chunk-0",
+            "trial-policy:chunk-0",
+            "refunds-cancel:chunk-0",
+            "billing-plans:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.15
+      },
+      {
+        "id": "q18-slack-disconnect",
+        "type": "direct",
+        "question": "Does disconnecting Slack delete old Slack messages?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "slack-integration"
+        ],
+        "expected_chunks": [
+          "slack-integration:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "slack-integration",
+            "trial-policy",
+            "billing-plans",
+            "workspace-roles",
+            "account-profile"
+          ],
+          "chunks": [
+            "slack-integration:chunk-0",
+            "trial-policy:chunk-0",
+            "billing-plans:chunk-0",
+            "workspace-roles:chunk-0",
+            "account-profile:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "slack-integration",
+            "payment-methods",
+            "workspace-roles",
+            "invoice-tax",
+            "refunds-cancel"
+          ],
+          "chunks": [
+            "slack-integration:chunk-0",
+            "payment-methods:chunk-0",
+            "workspace-roles:chunk-0",
+            "invoice-tax:chunk-0",
+            "refunds-cancel:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "slack-integration",
+            "workspace-roles",
+            "trial-policy",
+            "payment-methods",
+            "billing-plans"
+          ],
+          "chunks": [
+            "slack-integration:chunk-0",
+            "workspace-roles:chunk-0",
+            "trial-policy:chunk-0",
+            "payment-methods:chunk-0",
+            "billing-plans:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.93
+      },
+      {
+        "id": "q19-webhook-events",
+        "type": "direct",
+        "question": "Which CRM webhook events are sent?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "crm-webhook"
+        ],
+        "expected_chunks": [
+          "crm-webhook:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "crm-webhook",
+            "email-deliverability",
+            "account-profile"
+          ],
+          "chunks": [
+            "crm-webhook:chunk-0",
+            "email-deliverability:chunk-0",
+            "account-profile:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "account-profile",
+            "invoice-tax",
+            "retention-policy",
+            "widget-install",
+            "email-deliverability"
+          ],
+          "chunks": [
+            "account-profile:chunk-0",
+            "invoice-tax:chunk-0",
+            "retention-policy:chunk-0",
+            "widget-install:chunk-0",
+            "email-deliverability:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "account-profile",
+            "email-deliverability",
+            "crm-webhook",
+            "invoice-tax",
+            "retention-policy"
+          ],
+          "chunks": [
+            "account-profile:chunk-0",
+            "email-deliverability:chunk-0",
+            "crm-webhook:chunk-0",
+            "invoice-tax:chunk-0",
+            "retention-policy:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.27
+      },
+      {
+        "id": "q20-webhook-timeout",
+        "type": "direct",
+        "question": "How fast must my webhook endpoint respond?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "crm-webhook"
+        ],
+        "expected_chunks": [
+          "crm-webhook:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "crm-webhook",
+            "account-profile"
+          ],
+          "chunks": [
+            "crm-webhook:chunk-0",
+            "account-profile:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "crm-webhook",
+            "billing-plans",
+            "invoice-tax",
+            "retention-policy",
+            "api-security"
+          ],
+          "chunks": [
+            "crm-webhook:chunk-0",
+            "billing-plans:chunk-0",
+            "invoice-tax:chunk-0",
+            "retention-policy:chunk-0",
+            "api-security:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "crm-webhook",
+            "account-profile",
+            "billing-plans",
+            "invoice-tax",
+            "retention-policy"
+          ],
+          "chunks": [
+            "crm-webhook:chunk-0",
+            "account-profile:chunk-0",
+            "billing-plans:chunk-0",
+            "invoice-tax:chunk-0",
+            "retention-policy:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.52
+      },
+      {
+        "id": "q21-export-fields",
+        "type": "multi-doc",
+        "question": "What data is included in exports and are payment cards included?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "data-export",
+          "payment-methods"
+        ],
+        "expected_chunks": [
+          "data-export:chunk-0",
+          "payment-methods:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "data-export",
+            "payment-methods",
+            "invoice-tax",
+            "api-security",
+            "billing-plans"
+          ],
+          "chunks": [
+            "data-export:chunk-0",
+            "payment-methods:chunk-0",
+            "invoice-tax:chunk-0",
+            "api-security:chunk-0",
+            "billing-plans:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "data-export",
+            "invoice-tax",
+            "widget-branding",
+            "trial-policy",
+            "api-security"
+          ],
+          "chunks": [
+            "data-export:chunk-0",
+            "invoice-tax:chunk-0",
+            "widget-branding:chunk-0",
+            "trial-policy:chunk-0",
+            "api-security:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "data-export",
+            "invoice-tax",
+            "api-security",
+            "payment-methods",
+            "widget-branding"
+          ],
+          "chunks": [
+            "data-export:chunk-0",
+            "invoice-tax:chunk-0",
+            "api-security:chunk-0",
+            "payment-methods:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 5.07
+      },
+      {
+        "id": "q22-export-knowledge",
+        "type": "direct",
+        "question": "Can admins export knowledge articles?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "data-export"
+        ],
+        "expected_chunks": [
+          "data-export:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "data-export",
+            "workspace-roles",
+            "refunds-cancel",
+            "widget-branding",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "data-export:chunk-0",
+            "workspace-roles:chunk-0",
+            "refunds-cancel:chunk-0",
+            "widget-branding:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "data-export",
+            "diagnostics-recovery",
+            "workspace-roles",
+            "refunds-cancel",
+            "widget-branding"
+          ],
+          "chunks": [
+            "data-export:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "workspace-roles:chunk-0",
+            "refunds-cancel:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "data-export",
+            "workspace-roles",
+            "refunds-cancel",
+            "widget-branding",
+            "diagnostics-recovery"
+          ],
+          "chunks": [
+            "data-export:chunk-0",
+            "workspace-roles:chunk-0",
+            "refunds-cancel:chunk-0",
+            "widget-branding:chunk-0",
+            "diagnostics-recovery:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.37
+      },
+      {
+        "id": "q23-retention",
+        "type": "direct",
+        "question": "Does AskWell Lite automatically purge old conversations?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "retention-policy"
+        ],
+        "expected_chunks": [
+          "retention-policy:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "retention-policy",
+            "account-profile",
+            "email-deliverability",
+            "refunds-cancel",
+            "widget-branding"
+          ],
+          "chunks": [
+            "retention-policy:chunk-0",
+            "account-profile:chunk-0",
+            "email-deliverability:chunk-0",
+            "refunds-cancel:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "retention-policy",
+            "account-profile",
+            "email-deliverability",
+            "refunds-cancel",
+            "invoice-tax"
+          ],
+          "chunks": [
+            "retention-policy:chunk-0",
+            "account-profile:chunk-0",
+            "email-deliverability:chunk-0",
+            "refunds-cancel:chunk-0",
+            "invoice-tax:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "retention-policy",
+            "account-profile",
+            "email-deliverability",
+            "refunds-cancel",
+            "widget-branding"
+          ],
+          "chunks": [
+            "retention-policy:chunk-0",
+            "account-profile:chunk-0",
+            "email-deliverability:chunk-0",
+            "refunds-cancel:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.23
+      },
+      {
+        "id": "q24-backups",
+        "type": "paraphrase",
+        "question": "Who is responsible for backups in the self hosted Lite build?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "retention-policy"
+        ],
+        "expected_chunks": [
+          "retention-policy:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "retention-policy",
+            "payment-methods",
+            "widget-branding",
+            "email-deliverability",
+            "invoice-tax"
+          ],
+          "chunks": [
+            "retention-policy:chunk-0",
+            "payment-methods:chunk-0",
+            "widget-branding:chunk-0",
+            "email-deliverability:chunk-0",
+            "invoice-tax:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "retention-policy",
+            "widget-install",
+            "api-security",
+            "widget-branding",
+            "invoice-tax"
+          ],
+          "chunks": [
+            "retention-policy:chunk-0",
+            "widget-install:chunk-0",
+            "api-security:chunk-0",
+            "widget-branding:chunk-0",
+            "invoice-tax:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "retention-policy",
+            "widget-branding",
+            "invoice-tax",
+            "payment-methods",
+            "widget-install"
+          ],
+          "chunks": [
+            "retention-policy:chunk-0",
+            "widget-branding:chunk-0",
+            "invoice-tax:chunk-0",
+            "payment-methods:chunk-0",
+            "widget-install:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.1
+      },
+      {
+        "id": "q25-owner-permissions",
+        "type": "direct",
+        "question": "Can owners delete the workspace and manage billing?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "workspace-roles"
+        ],
+        "expected_chunks": [
+          "workspace-roles:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "workspace-roles",
+            "payment-methods",
+            "refunds-cancel",
+            "invoice-tax",
+            "data-export"
+          ],
+          "chunks": [
+            "workspace-roles:chunk-0",
+            "payment-methods:chunk-0",
+            "refunds-cancel:chunk-0",
+            "invoice-tax:chunk-0",
+            "data-export:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "workspace-roles",
+            "refunds-cancel",
+            "payment-methods",
+            "widget-install",
+            "email-deliverability"
+          ],
+          "chunks": [
+            "workspace-roles:chunk-0",
+            "refunds-cancel:chunk-0",
+            "payment-methods:chunk-0",
+            "widget-install:chunk-0",
+            "email-deliverability:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "workspace-roles",
+            "payment-methods",
+            "refunds-cancel",
+            "invoice-tax",
+            "widget-install"
+          ],
+          "chunks": [
+            "workspace-roles:chunk-0",
+            "payment-methods:chunk-0",
+            "refunds-cancel:chunk-0",
+            "invoice-tax:chunk-0",
+            "widget-install:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.86
+      },
+      {
+        "id": "q26-agent-permissions",
+        "type": "direct",
+        "question": "Can agents change billing?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "workspace-roles"
+        ],
+        "expected_chunks": [
+          "workspace-roles:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "workspace-roles",
+            "payment-methods",
+            "refunds-cancel",
+            "invoice-tax",
+            "widget-branding"
+          ],
+          "chunks": [
+            "workspace-roles:chunk-0",
+            "payment-methods:chunk-0",
+            "refunds-cancel:chunk-0",
+            "invoice-tax:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "payment-methods",
+            "workspace-roles",
+            "diagnostics-recovery",
+            "refunds-cancel",
+            "slack-integration"
+          ],
+          "chunks": [
+            "payment-methods:chunk-0",
+            "workspace-roles:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "refunds-cancel:chunk-0",
+            "slack-integration:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "workspace-roles",
+            "payment-methods",
+            "refunds-cancel",
+            "diagnostics-recovery",
+            "invoice-tax"
+          ],
+          "chunks": [
+            "workspace-roles:chunk-0",
+            "payment-methods:chunk-0",
+            "refunds-cancel:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "invoice-tax:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.69
+      },
+      {
+        "id": "q27-email-change",
+        "type": "direct",
+        "question": "How does a user change their email address?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "account-profile"
+        ],
+        "expected_chunks": [
+          "account-profile:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "account-profile",
+            "invoice-tax",
+            "workspace-roles",
+            "password-recovery",
+            "widget-branding"
+          ],
+          "chunks": [
+            "account-profile:chunk-0",
+            "invoice-tax:chunk-0",
+            "workspace-roles:chunk-0",
+            "password-recovery:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "slack-integration",
+            "account-profile",
+            "password-recovery",
+            "retention-policy",
+            "crm-webhook"
+          ],
+          "chunks": [
+            "slack-integration:chunk-0",
+            "account-profile:chunk-0",
+            "password-recovery:chunk-0",
+            "retention-policy:chunk-0",
+            "crm-webhook:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "account-profile",
+            "password-recovery",
+            "slack-integration",
+            "invoice-tax",
+            "workspace-roles"
+          ],
+          "chunks": [
+            "account-profile:chunk-0",
+            "password-recovery:chunk-0",
+            "slack-integration:chunk-0",
+            "invoice-tax:chunk-0",
+            "workspace-roles:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.61
+      },
+      {
+        "id": "q28-old-inbox",
+        "type": "paraphrase",
+        "question": "What if someone cannot access the old mailbox for an account change?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "account-profile"
+        ],
+        "expected_chunks": [
+          "account-profile:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "account-profile",
+            "workspace-roles",
+            "retention-policy",
+            "password-recovery",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "account-profile:chunk-0",
+            "workspace-roles:chunk-0",
+            "retention-policy:chunk-0",
+            "password-recovery:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "troubleshooting-widget",
+            "api-security",
+            "password-recovery",
+            "account-profile",
+            "retention-policy"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "api-security:chunk-0",
+            "password-recovery:chunk-0",
+            "account-profile:chunk-0",
+            "retention-policy:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "account-profile",
+            "troubleshooting-widget",
+            "password-recovery",
+            "retention-policy",
+            "workspace-roles"
+          ],
+          "chunks": [
+            "account-profile:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "password-recovery:chunk-0",
+            "retention-policy:chunk-0",
+            "workspace-roles:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.66
+      },
+      {
+        "id": "q29-reset-expiry",
+        "type": "direct",
+        "question": "When does a password reset link expire?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "password-recovery"
+        ],
+        "expected_chunks": [
+          "password-recovery:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "password-recovery",
+            "email-deliverability",
+            "account-profile",
+            "slack-integration",
+            "invoice-tax"
+          ],
+          "chunks": [
+            "password-recovery:chunk-0",
+            "email-deliverability:chunk-0",
+            "account-profile:chunk-0",
+            "slack-integration:chunk-0",
+            "invoice-tax:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "slack-integration",
+            "password-recovery",
+            "trial-policy",
+            "crm-webhook",
+            "email-deliverability"
+          ],
+          "chunks": [
+            "slack-integration:chunk-0",
+            "password-recovery:chunk-0",
+            "trial-policy:chunk-0",
+            "crm-webhook:chunk-0",
+            "email-deliverability:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "password-recovery",
+            "slack-integration",
+            "email-deliverability",
+            "account-profile",
+            "trial-policy"
+          ],
+          "chunks": [
+            "password-recovery:chunk-0",
+            "slack-integration:chunk-0",
+            "email-deliverability:chunk-0",
+            "account-profile:chunk-0",
+            "trial-policy:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.75
+      },
+      {
+        "id": "q30-reset-no-email",
+        "type": "troubleshooting",
+        "question": "I requested a reset but no email arrived. What should I do?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "password-recovery",
+          "email-deliverability"
+        ],
+        "expected_chunks": [
+          "password-recovery:chunk-0",
+          "email-deliverability:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "password-recovery",
+            "widget-install",
+            "email-deliverability",
+            "invoice-tax",
+            "account-profile"
+          ],
+          "chunks": [
+            "password-recovery:chunk-0",
+            "widget-install:chunk-0",
+            "email-deliverability:chunk-0",
+            "invoice-tax:chunk-0",
+            "account-profile:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "password-recovery",
+            "refunds-cancel",
+            "widget-branding",
+            "troubleshooting-widget",
+            "account-profile"
+          ],
+          "chunks": [
+            "password-recovery:chunk-0",
+            "refunds-cancel:chunk-0",
+            "widget-branding:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "account-profile:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "password-recovery",
+            "account-profile",
+            "widget-install",
+            "refunds-cancel",
+            "email-deliverability"
+          ],
+          "chunks": [
+            "password-recovery:chunk-0",
+            "account-profile:chunk-0",
+            "widget-install:chunk-0",
+            "refunds-cancel:chunk-0",
+            "email-deliverability:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.61
+      },
+      {
+        "id": "q31-invite-email",
+        "type": "direct",
+        "question": "Can owners resend an invitation email?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "email-deliverability"
+        ],
+        "expected_chunks": [
+          "email-deliverability:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "email-deliverability",
+            "invoice-tax",
+            "password-recovery",
+            "account-profile",
+            "workspace-roles"
+          ],
+          "chunks": [
+            "email-deliverability:chunk-0",
+            "invoice-tax:chunk-0",
+            "password-recovery:chunk-0",
+            "account-profile:chunk-0",
+            "workspace-roles:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "email-deliverability",
+            "refunds-cancel",
+            "account-profile",
+            "troubleshooting-widget",
+            "retention-policy"
+          ],
+          "chunks": [
+            "email-deliverability:chunk-0",
+            "refunds-cancel:chunk-0",
+            "account-profile:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "retention-policy:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "email-deliverability",
+            "account-profile",
+            "invoice-tax",
+            "refunds-cancel",
+            "password-recovery"
+          ],
+          "chunks": [
+            "email-deliverability:chunk-0",
+            "account-profile:chunk-0",
+            "invoice-tax:chunk-0",
+            "refunds-cancel:chunk-0",
+            "password-recovery:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.73
+      },
+      {
+        "id": "q32-smtp",
+        "type": "direct",
+        "question": "Does AskWell Lite include custom SMTP settings?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "email-deliverability"
+        ],
+        "expected_chunks": [
+          "email-deliverability:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "email-deliverability",
+            "widget-branding",
+            "retention-policy",
+            "data-export",
+            "billing-plans"
+          ],
+          "chunks": [
+            "email-deliverability:chunk-0",
+            "widget-branding:chunk-0",
+            "retention-policy:chunk-0",
+            "data-export:chunk-0",
+            "billing-plans:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "email-deliverability",
+            "workspace-roles",
+            "crm-webhook",
+            "retention-policy",
+            "account-profile"
+          ],
+          "chunks": [
+            "email-deliverability:chunk-0",
+            "workspace-roles:chunk-0",
+            "crm-webhook:chunk-0",
+            "retention-policy:chunk-0",
+            "account-profile:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "email-deliverability",
+            "retention-policy",
+            "widget-branding",
+            "workspace-roles",
+            "crm-webhook"
+          ],
+          "chunks": [
+            "email-deliverability:chunk-0",
+            "retention-policy:chunk-0",
+            "widget-branding:chunk-0",
+            "workspace-roles:chunk-0",
+            "crm-webhook:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.95
+      },
+      {
+        "id": "q33-diagnostics-checks",
+        "type": "direct",
+        "question": "What does the diagnostics panel check?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "diagnostics-recovery"
+        ],
+        "expected_chunks": [
+          "diagnostics-recovery:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "diagnostics-recovery",
+            "password-recovery",
+            "email-deliverability",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "diagnostics-recovery:chunk-0",
+            "password-recovery:chunk-0",
+            "email-deliverability:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "troubleshooting-widget",
+            "email-deliverability",
+            "widget-install",
+            "refunds-cancel",
+            "diagnostics-recovery"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "email-deliverability:chunk-0",
+            "widget-install:chunk-0",
+            "refunds-cancel:chunk-0",
+            "diagnostics-recovery:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "troubleshooting-widget",
+            "email-deliverability",
+            "diagnostics-recovery",
+            "password-recovery",
+            "widget-install"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "email-deliverability:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "password-recovery:chunk-0",
+            "widget-install:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.82
+      },
+      {
+        "id": "q34-retry-stable-id",
+        "type": "direct",
+        "question": "Does retry reuse the original document ID?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "diagnostics-recovery"
+        ],
+        "expected_chunks": [
+          "diagnostics-recovery:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "diagnostics-recovery",
+            "invoice-tax",
+            "widget-install"
+          ],
+          "chunks": [
+            "diagnostics-recovery:chunk-0",
+            "invoice-tax:chunk-0",
+            "widget-install:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "diagnostics-recovery",
+            "email-deliverability",
+            "troubleshooting-widget",
+            "refunds-cancel",
+            "api-security"
+          ],
+          "chunks": [
+            "diagnostics-recovery:chunk-0",
+            "email-deliverability:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "refunds-cancel:chunk-0",
+            "api-security:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "diagnostics-recovery",
+            "invoice-tax",
+            "email-deliverability",
+            "widget-install",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "diagnostics-recovery:chunk-0",
+            "invoice-tax:chunk-0",
+            "email-deliverability:chunk-0",
+            "widget-install:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.91
+      },
+      {
+        "id": "q35-admin-token",
+        "type": "direct",
+        "question": "When is ASKWELL_ADMIN_TOKEN required?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "api-security"
+        ],
+        "expected_chunks": [
+          "api-security:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "api-security",
+            "trial-policy",
+            "slack-integration",
+            "invoice-tax",
+            "diagnostics-recovery"
+          ],
+          "chunks": [
+            "api-security:chunk-0",
+            "trial-policy:chunk-0",
+            "slack-integration:chunk-0",
+            "invoice-tax:chunk-0",
+            "diagnostics-recovery:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "slack-integration",
+            "crm-webhook",
+            "password-recovery",
+            "api-security",
+            "widget-branding"
+          ],
+          "chunks": [
+            "slack-integration:chunk-0",
+            "crm-webhook:chunk-0",
+            "password-recovery:chunk-0",
+            "api-security:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "slack-integration",
+            "api-security",
+            "trial-policy",
+            "crm-webhook",
+            "password-recovery"
+          ],
+          "chunks": [
+            "slack-integration:chunk-0",
+            "api-security:chunk-0",
+            "trial-policy:chunk-0",
+            "crm-webhook:chunk-0",
+            "password-recovery:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 2.5
+      },
+      {
+        "id": "q36-static-allowlist",
+        "type": "direct",
+        "question": "Does static serving block private files?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "api-security"
+        ],
+        "expected_chunks": [
+          "api-security:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "api-security"
+          ],
+          "chunks": [
+            "api-security:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "widget-install",
+            "api-security",
+            "troubleshooting-widget",
+            "email-deliverability",
+            "invoice-tax"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "api-security:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "email-deliverability:chunk-0",
+            "invoice-tax:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "api-security",
+            "widget-install",
+            "troubleshooting-widget",
+            "email-deliverability",
+            "invoice-tax"
+          ],
+          "chunks": [
+            "api-security:chunk-0",
+            "widget-install:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "email-deliverability:chunk-0",
+            "invoice-tax:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.94
+      },
+      {
+        "id": "q37-payment-enterprise",
+        "type": "direct",
+        "question": "Are bank transfers available in self serve billing?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "payment-methods"
+        ],
+        "expected_chunks": [
+          "payment-methods:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "payment-methods",
+            "invoice-tax",
+            "retention-policy",
+            "workspace-roles",
+            "refunds-cancel"
+          ],
+          "chunks": [
+            "payment-methods:chunk-0",
+            "invoice-tax:chunk-0",
+            "retention-policy:chunk-0",
+            "workspace-roles:chunk-0",
+            "refunds-cancel:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "payment-methods",
+            "invoice-tax",
+            "refunds-cancel",
+            "troubleshooting-widget",
+            "retention-policy"
+          ],
+          "chunks": [
+            "payment-methods:chunk-0",
+            "invoice-tax:chunk-0",
+            "refunds-cancel:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "retention-policy:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "payment-methods",
+            "invoice-tax",
+            "retention-policy",
+            "refunds-cancel",
+            "workspace-roles"
+          ],
+          "chunks": [
+            "payment-methods:chunk-0",
+            "invoice-tax:chunk-0",
+            "retention-policy:chunk-0",
+            "refunds-cancel:chunk-0",
+            "workspace-roles:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.03
+      },
+      {
+        "id": "q38-payment-card",
+        "type": "synonym",
+        "question": "Where can I swap the card on file?",
+        "expected_answerable": true,
+        "expected_documents": [
+          "payment-methods"
+        ],
+        "expected_chunks": [
+          "payment-methods:chunk-0"
+        ],
+        "bm25": {
+          "documents": [
+            "widget-install",
+            "troubleshooting-widget",
+            "data-export",
+            "payment-methods",
+            "password-recovery"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "data-export:chunk-0",
+            "payment-methods:chunk-0",
+            "password-recovery:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "diagnostics-recovery",
+            "troubleshooting-widget",
+            "refunds-cancel",
+            "api-security",
+            "payment-methods"
+          ],
+          "chunks": [
+            "diagnostics-recovery:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "refunds-cancel:chunk-0",
+            "api-security:chunk-0",
+            "payment-methods:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "troubleshooting-widget",
+            "payment-methods",
+            "widget-install",
+            "diagnostics-recovery",
+            "data-export"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "payment-methods:chunk-0",
+            "widget-install:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "data-export:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.88
+      },
+      {
+        "id": "q39-ambiguous-plan",
+        "type": "ambiguous",
+        "question": "Can I change it?",
+        "expected_answerable": false,
+        "expected_documents": [],
+        "expected_chunks": [],
+        "bm25": {
+          "documents": [
+            "workspace-roles",
+            "widget-branding",
+            "widget-install",
+            "refunds-cancel",
+            "data-export"
+          ],
+          "chunks": [
+            "workspace-roles:chunk-0",
+            "widget-branding:chunk-0",
+            "widget-install:chunk-0",
+            "refunds-cancel:chunk-0",
+            "data-export:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "diagnostics-recovery",
+            "workspace-roles",
+            "data-export",
+            "refunds-cancel",
+            "payment-methods"
+          ],
+          "chunks": [
+            "diagnostics-recovery:chunk-0",
+            "workspace-roles:chunk-0",
+            "data-export:chunk-0",
+            "refunds-cancel:chunk-0",
+            "payment-methods:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "workspace-roles",
+            "data-export",
+            "refunds-cancel",
+            "diagnostics-recovery",
+            "widget-branding"
+          ],
+          "chunks": [
+            "workspace-roles:chunk-0",
+            "data-export:chunk-0",
+            "refunds-cancel:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.71
+      },
+      {
+        "id": "q40-ambiguous-settings",
+        "type": "ambiguous",
+        "question": "Where is the setting?",
+        "expected_answerable": false,
+        "expected_documents": [],
+        "expected_chunks": [],
+        "bm25": {
+          "documents": [
+            "widget-install"
+          ],
+          "chunks": [
+            "widget-install:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "diagnostics-recovery",
+            "widget-install",
+            "troubleshooting-widget",
+            "api-security",
+            "trial-policy"
+          ],
+          "chunks": [
+            "diagnostics-recovery:chunk-0",
+            "widget-install:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "api-security:chunk-0",
+            "trial-policy:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "widget-install",
+            "diagnostics-recovery",
+            "troubleshooting-widget",
+            "api-security",
+            "trial-policy"
+          ],
+          "chunks": [
+            "widget-install:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "api-security:chunk-0",
+            "trial-policy:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_semantic",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.58
+      },
+      {
+        "id": "q41-sso",
+        "type": "unanswerable",
+        "question": "How do I configure SAML single sign on?",
+        "expected_answerable": false,
+        "expected_documents": [],
+        "expected_chunks": [],
+        "bm25": {
+          "documents": [
+            "password-recovery",
+            "billing-plans",
+            "widget-install"
+          ],
+          "chunks": [
+            "password-recovery:chunk-0",
+            "billing-plans:chunk-0",
+            "widget-install:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "password-recovery",
+            "email-deliverability",
+            "trial-policy",
+            "api-security",
+            "widget-branding"
+          ],
+          "chunks": [
+            "password-recovery:chunk-0",
+            "email-deliverability:chunk-0",
+            "trial-policy:chunk-0",
+            "api-security:chunk-0",
+            "widget-branding:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "password-recovery",
+            "billing-plans",
+            "email-deliverability",
+            "widget-install",
+            "trial-policy"
+          ],
+          "chunks": [
+            "password-recovery:chunk-0",
+            "billing-plans:chunk-0",
+            "email-deliverability:chunk-0",
+            "widget-install:chunk-0",
+            "trial-policy:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 1.05
+      },
+      {
+        "id": "q42-mobile-sdk",
+        "type": "unanswerable",
+        "question": "Does AskWell provide an Android SDK?",
+        "expected_answerable": false,
+        "expected_documents": [],
+        "expected_chunks": [],
+        "bm25": {
+          "documents": [
+            "email-deliverability",
+            "widget-install",
+            "payment-methods",
+            "password-recovery",
+            "crm-webhook"
+          ],
+          "chunks": [
+            "email-deliverability:chunk-0",
+            "widget-install:chunk-0",
+            "payment-methods:chunk-0",
+            "password-recovery:chunk-0",
+            "crm-webhook:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "email-deliverability",
+            "refunds-cancel",
+            "crm-webhook",
+            "slack-integration",
+            "retention-policy"
+          ],
+          "chunks": [
+            "email-deliverability:chunk-0",
+            "refunds-cancel:chunk-0",
+            "crm-webhook:chunk-0",
+            "slack-integration:chunk-0",
+            "retention-policy:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "email-deliverability",
+            "crm-webhook",
+            "widget-install",
+            "refunds-cancel",
+            "payment-methods"
+          ],
+          "chunks": [
+            "email-deliverability:chunk-0",
+            "crm-webhook:chunk-0",
+            "widget-install:chunk-0",
+            "refunds-cancel:chunk-0",
+            "payment-methods:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_semantic",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.65
+      },
+      {
+        "id": "q43-voice",
+        "type": "unanswerable",
+        "question": "Can the bot answer phone calls?",
+        "expected_answerable": false,
+        "expected_documents": [],
+        "expected_chunks": [],
+        "bm25": {
+          "documents": [
+            "slack-integration",
+            "troubleshooting-widget",
+            "workspace-roles",
+            "refunds-cancel",
+            "data-export"
+          ],
+          "chunks": [
+            "slack-integration:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "workspace-roles:chunk-0",
+            "refunds-cancel:chunk-0",
+            "data-export:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "api-security",
+            "diagnostics-recovery",
+            "troubleshooting-widget",
+            "trial-policy",
+            "widget-install"
+          ],
+          "chunks": [
+            "api-security:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "troubleshooting-widget:chunk-0",
+            "trial-policy:chunk-0",
+            "widget-install:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "troubleshooting-widget",
+            "slack-integration",
+            "api-security",
+            "diagnostics-recovery",
+            "workspace-roles"
+          ],
+          "chunks": [
+            "troubleshooting-widget:chunk-0",
+            "slack-integration:chunk-0",
+            "api-security:chunk-0",
+            "diagnostics-recovery:chunk-0",
+            "workspace-roles:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_semantic",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.56
+      },
+      {
+        "id": "q44-partial-insufficient",
+        "type": "partial-insufficient",
+        "question": "Can exports include audit logs and payment card numbers?",
+        "expected_answerable": false,
+        "expected_documents": [],
+        "expected_chunks": [],
+        "bm25": {
+          "documents": [
+            "data-export",
+            "payment-methods",
+            "billing-plans",
+            "trial-policy",
+            "email-deliverability"
+          ],
+          "chunks": [
+            "data-export:chunk-0",
+            "payment-methods:chunk-0",
+            "billing-plans:chunk-0",
+            "trial-policy:chunk-0",
+            "email-deliverability:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "data-export",
+            "payment-methods",
+            "api-security",
+            "trial-policy",
+            "troubleshooting-widget"
+          ],
+          "chunks": [
+            "data-export:chunk-0",
+            "payment-methods:chunk-0",
+            "api-security:chunk-0",
+            "trial-policy:chunk-0",
+            "troubleshooting-widget:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "data-export",
+            "payment-methods",
+            "trial-policy",
+            "billing-plans",
+            "api-security"
+          ],
+          "chunks": [
+            "data-export:chunk-0",
+            "payment-methods:chunk-0",
+            "trial-policy:chunk-0",
+            "billing-plans:chunk-0",
+            "api-security:chunk-0"
+          ]
+        },
+        "evidence_sufficient": true,
+        "evidence_reason": null,
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.59
+      },
+      {
+        "id": "q45-outdated-conflict",
+        "type": "conflict",
+        "question": "Is the old 2023 trial card policy still active?",
+        "expected_answerable": false,
+        "expected_documents": [],
+        "expected_chunks": [],
+        "bm25": {
+          "documents": [
+            "trial-policy",
+            "retention-policy",
+            "account-profile",
+            "invoice-tax",
+            "diagnostics-recovery"
+          ],
+          "chunks": [
+            "trial-policy:chunk-0",
+            "retention-policy:chunk-0",
+            "account-profile:chunk-0",
+            "invoice-tax:chunk-0",
+            "diagnostics-recovery:chunk-0"
+          ]
+        },
+        "semantic": {
+          "documents": [
+            "api-security",
+            "trial-policy",
+            "widget-install",
+            "invoice-tax",
+            "retention-policy"
+          ],
+          "chunks": [
+            "api-security:chunk-0",
+            "trial-policy:chunk-0",
+            "widget-install:chunk-0",
+            "invoice-tax:chunk-0",
+            "retention-policy:chunk-0"
+          ]
+        },
+        "hybrid": {
+          "documents": [
+            "trial-policy",
+            "retention-policy",
+            "invoice-tax",
+            "api-security",
+            "account-profile"
+          ],
+          "chunks": [
+            "trial-policy:chunk-0",
+            "retention-policy:chunk-0",
+            "invoice-tax:chunk-0",
+            "api-security:chunk-0",
+            "account-profile:chunk-0"
+          ]
+        },
+        "evidence_sufficient": false,
+        "evidence_reason": "conflicting_retrieval_evidence",
+        "evidence_signals": [
+          "strong_bm25",
+          "strong_semantic",
+          "query_coverage",
+          "retrieval_agreement"
+        ],
+        "latency_ms": 0.55
+      }
+    ]
+  },
+  "generation": {
+    "mode": "extractive_deterministic_no_live_llm",
+    "answerable_response_rate": 0.5263,
+    "unanswerable_abstention_rate": 1.0,
+    "ambiguous_abstention_rate": 1.0,
+    "answer_relevance": 0.6,
+    "citation_validity": 1.0,
+    "citation_precision": 0.3037,
+    "citation_coverage": 0.5667,
+    "unsupported_claim_failures": 0,
+    "latency_ms": {
+      "mean": 0.0,
+      "p95": 0.01
+    },
+    "rows": [
+      {
+        "id": "q01-trial-length",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "trial-policy:chunk-0",
+          "billing-plans:chunk-0",
+          "widget-install:chunk-0"
+        ],
+        "latency_ms": 0.02
+      },
+      {
+        "id": "q02-trial-card",
+        "type": "paraphrase",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q03-trial-after",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "trial-policy:chunk-0",
+          "slack-integration:chunk-0",
+          "troubleshooting-widget:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q04-free-limits",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q05-growth-limits",
+        "type": "synonym",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q06-plan-proration",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q07-refund-duplicate",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "refunds-cancel:chunk-0",
+          "payment-methods:chunk-0",
+          "data-export:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q08-cancel-effect",
+        "type": "paraphrase",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q09-invoice-tax",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q10-past-invoices",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q11-widget-install",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "widget-install:chunk-0",
+          "workspace-roles:chunk-0",
+          "widget-branding:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q12-widget-missing",
+        "type": "troubleshooting",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "widget-install:chunk-0",
+          "widget-branding:chunk-0",
+          "troubleshooting-widget:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q13-widget-brand",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "widget-branding:chunk-0",
+          "workspace-roles:chunk-0",
+          "api-security:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q14-custom-css",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q15-widget-no-answer",
+        "type": "multi-doc",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 0.5,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "troubleshooting-widget:chunk-0",
+          "widget-branding:chunk-0",
+          "widget-install:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q16-local-file-fallback",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "troubleshooting-widget:chunk-0",
+          "slack-integration:chunk-0",
+          "payment-methods:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q17-slack-channel",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q18-slack-disconnect",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "slack-integration:chunk-0",
+          "workspace-roles:chunk-0",
+          "trial-policy:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q19-webhook-events",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q20-webhook-timeout",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "crm-webhook:chunk-0",
+          "account-profile:chunk-0",
+          "billing-plans:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q21-export-fields",
+        "type": "multi-doc",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 0.5,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "data-export:chunk-0",
+          "invoice-tax:chunk-0",
+          "api-security:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q22-export-knowledge",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "data-export:chunk-0",
+          "workspace-roles:chunk-0",
+          "refunds-cancel:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q23-retention",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "retention-policy:chunk-0",
+          "account-profile:chunk-0",
+          "email-deliverability:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q24-backups",
+        "type": "paraphrase",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "retention-policy:chunk-0",
+          "widget-branding:chunk-0",
+          "invoice-tax:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q25-owner-permissions",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "workspace-roles:chunk-0",
+          "payment-methods:chunk-0",
+          "refunds-cancel:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q26-agent-permissions",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q27-email-change",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q28-old-inbox",
+        "type": "paraphrase",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q29-reset-expiry",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q30-reset-no-email",
+        "type": "troubleshooting",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 0.5,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "password-recovery:chunk-0",
+          "account-profile:chunk-0",
+          "widget-install:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q31-invite-email",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "email-deliverability:chunk-0",
+          "account-profile:chunk-0",
+          "invoice-tax:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q32-smtp",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "email-deliverability:chunk-0",
+          "retention-policy:chunk-0",
+          "widget-branding:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q33-diagnostics-checks",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q34-retry-stable-id",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "diagnostics-recovery:chunk-0",
+          "invoice-tax:chunk-0",
+          "email-deliverability:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q35-admin-token",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q36-static-allowlist",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q37-payment-enterprise",
+        "type": "direct",
+        "expected_abstain": false,
+        "abstained": false,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 0.3333333333333333,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [
+          "payment-methods:chunk-0",
+          "invoice-tax:chunk-0",
+          "retention-policy:chunk-0"
+        ],
+        "latency_ms": 0.01
+      },
+      {
+        "id": "q38-payment-card",
+        "type": "synonym",
+        "expected_abstain": false,
+        "abstained": true,
+        "answer_relevance_pass": false,
+        "citation_validity_pass": true,
+        "citation_precision": 0.0,
+        "citation_coverage": 0.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q39-ambiguous-plan",
+        "type": "ambiguous",
+        "expected_abstain": true,
+        "abstained": true,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 1.0,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q40-ambiguous-settings",
+        "type": "ambiguous",
+        "expected_abstain": true,
+        "abstained": true,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 1.0,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q41-sso",
+        "type": "unanswerable",
+        "expected_abstain": true,
+        "abstained": true,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 1.0,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q42-mobile-sdk",
+        "type": "unanswerable",
+        "expected_abstain": true,
+        "abstained": true,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 1.0,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q43-voice",
+        "type": "unanswerable",
+        "expected_abstain": true,
+        "abstained": true,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 1.0,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q44-partial-insufficient",
+        "type": "partial-insufficient",
+        "expected_abstain": true,
+        "abstained": true,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 1.0,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      },
+      {
+        "id": "q45-outdated-conflict",
+        "type": "conflict",
+        "expected_abstain": true,
+        "abstained": true,
+        "answer_relevance_pass": true,
+        "citation_validity_pass": true,
+        "citation_precision": 1.0,
+        "citation_coverage": 1.0,
+        "unsupported_claim_failure": false,
+        "citations": [],
+        "latency_ms": 0.0
+      }
+    ],
+    "limitations": "Answer relevance uses normalized phrase matching and citation checks; it is not a general semantic judge."
+  },
+  "lifecycle_workflows": {
+    "new_document": {
+      "status": "pass",
+      "latency_ms": 45.48
+    },
+    "document_update": {
+      "status": "pass",
+      "stable_document_id": "life-update",
+      "previous_chunk_ids": [
+        "life-update:chunk-0"
+      ]
+    },
+    "failed_update_preserves_previous": {
+      "status": "pass"
+    },
+    "document_deletion": {
+      "status": "pass"
+    },
+    "duplicate_unchanged": {
+      "status": "pass"
+    },
+    "recovery_retry": {
+      "status": "pass",
+      "diagnostics_status": "healthy",
+      "retryable_before_recovery": true
+    }
+  },
+  "failure_handling": {
+    "llm_timeout_mock": "pass",
+    "malformed_provider_response": "pass",
+    "invalid_citation_ids": "pass",
+    "corrupt_json_storage": "pass",
+    "embedding_failure_preserves_failure_state": "pass",
+    "fastapi_unavailable": "covered_by_node_proxy_smoke_tests",
+    "node_timeout_or_connection_failure": "covered_by_node_proxy_smoke_tests",
+    "invalid_ingest_payload": "covered_by_fastapi_and_node_regression_tests",
+    "invalid_answer_request": "covered_by_fastapi_and_node_regression_tests",
+    "retrieval_failure": "covered_by_corrupt_storage_and_embedding_failure_checks",
+    "storage_write_failure": "covered_by_storage_regression_tests",
+    "diagnostic_endpoint_failure": "covered_by_node_proxy_smoke_tests"
+  },
+  "performance": {
+    "total_evaluation_ms": 1077.24,
+    "ingestion_ms": 40.18,
+    "retrieval_latency_ms": {
+      "mean": 1.27,
+      "median": 1.15,
+      "p95": 2.5
+    },
+    "answer_generation_latency_ms": {
+      "mean": 0.0,
+      "p95": 0.01
+    },
+    "diagnostics_latency_ms": 6.82,
+    "methodology": "Single local deterministic run over synthetic documents using TokenHashEmbeddingProvider and SQLite temporary storage."
+  },
+  "frontend_validation": {
+    "browser_automation": "not_available",
+    "reason": "No Playwright, Puppeteer, jsdom, or browser automation dependency is installed in this repository.",
+    "validated_by_node_vm_tests": [
+      "knowledge page loading",
+      "document list and details rendering",
+      "ingestion, update, re-index, deletion controls",
+      "diagnostics refresh and retry controls",
+      "chat fallback and AI citation display",
+      "API and service failure messages"
+    ],
+    "claim_level": "frontend integration tests only; not full browser-level validation"
+  },
+  "comparison_with_earlier_reports": {
+    "status": "not_directly_comparable",
+    "reason": "Phase 3.6 uses a larger new synthetic corpus and SQLite storage, so metric trends are informational only.",
+    "phase_3_2_2_dataset": {
+      "name": "AskWell synthetic support evaluation set",
+      "customer_data": false,
+      "documents": 10,
+      "questions": 14,
+      "question_types": [
+        "ambiguous",
+        "contextual",
+        "exact-keyword",
+        "multi-chunk",
+        "multi-source",
+        "paraphrase",
+        "partial-insufficient",
+        "synonym",
+        "unanswerable"
+      ]
+    },
+    "phase_3_2_2_key_metrics": {
+      "answerable_answer_rate": 1.0,
+      "unanswerable_abstention_rate": 1.0,
+      "ambiguous_abstention_rate": 1.0,
+      "answer_relevance": 1.0,
+      "citation_validity": 1.0,
+      "citation_precision": 0.5476,
+      "citation_coverage": 1.0,
+      "hybrid_recall_at_3": 1.0,
+      "hybrid_precision_at_3": 0.3667
+    }
+  },
+  "known_limits": [
+    "No live OpenAI-compatible provider calls were made.",
+    "No real customer or workspace data was used.",
+    "TokenHash embeddings make the run deterministic but are not equivalent to all-MiniLM-L6-v2 quality.",
+    "Browser automation is unavailable in this repo, so frontend validation is Node VM integration coverage.",
+    "Metrics on synthetic support data are regression evidence, not production proof."
+  ],
+  "real_project_data_modified": false
+}
