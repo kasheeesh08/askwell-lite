@@ -72,6 +72,7 @@
       message: "Knowledge index ready",
       documents: [],
       pendingIds: [],
+      indexResults: {},
       selectedId: "",
       diagnostics: null,
       diagnosticsState: "idle",
@@ -140,6 +141,7 @@
     };
     next.documents = Array.isArray(next.documents) ? next.documents : [];
     next.pendingIds = Array.isArray(next.pendingIds) ? next.pendingIds : [];
+    next.indexResults = next.indexResults && typeof next.indexResults === "object" ? next.indexResults : {};
     next.selectedId = next.selectedId ? String(next.selectedId) : "";
     next.diagnostics = next.diagnostics && typeof next.diagnostics === "object" ? next.diagnostics : null;
     next.diagnosticsState = next.diagnosticsState || "idle";
@@ -311,9 +313,41 @@
     return ingestArticles([article]);
   }
 
+  function indexArticle(id) {
+    const article = state.articles.find((candidate) => candidate.id === id);
+    if (!article) {
+      setDocumentStatus({
+        state: "failed",
+        message: "Article is no longer available",
+      });
+      return Promise.resolve();
+    }
+    return ingestArticle(article);
+  }
+
+  function indexAllArticles() {
+    return ingestArticles(state.articles);
+  }
+
+  function summarizeIndexStatuses(statuses, fallback = "Knowledge index updated") {
+    const counts = statuses.reduce((summary, status) => {
+      const key = status.status || "updated";
+      summary[key] = (summary[key] || 0) + 1;
+      return summary;
+    }, {});
+    return [
+      counts.created ? `${counts.created} created` : "",
+      counts.updated ? `${counts.updated} updated` : "",
+      counts.unchanged ? `${counts.unchanged} unchanged` : "",
+      counts.failed ? `${counts.failed} failed` : "",
+    ].filter(Boolean).join(", ") || fallback;
+  }
+
   async function ingestArticles(articles) {
     if (!api.remoteApiAvailable()) return;
-    const candidates = Array.isArray(articles) ? articles.filter(isValidArticle) : [];
+    const candidates = Array.isArray(articles)
+      ? articles.filter((article) => isValidArticle(article) && !isDocumentPending(article.id))
+      : [];
     if (!candidates.length) return;
     candidates.forEach((article) => setDocumentPending(article.id, true));
     setDocumentStatus({
@@ -324,27 +358,48 @@
       const result = await api.ingestDocuments({ articles: candidates }, getAdminToken());
       candidates.forEach((article) => setDocumentPending(article.id, false));
       const statuses = Array.isArray(result.document_statuses) ? result.document_statuses : [];
-      const unchanged = statuses.filter((status) => status.status === "unchanged").length;
-      const updated = statuses.filter((status) => status.status === "updated").length;
-      const created = statuses.filter((status) => status.status === "created").length;
+      const statusById = Object.fromEntries(
+        statuses.map((status) => [
+          status.id,
+          {
+            status: status.status || "updated",
+            message: status.error || status.message || "",
+            version: status.version,
+            updatedAt: new Date().toISOString(),
+          },
+        ]),
+      );
       setDocumentStatus({
-        state: "saved",
-        message: statuses.length
-          ? [
-              created ? `${created} created` : "",
-              updated ? `${updated} updated` : "",
-              unchanged ? `${unchanged} unchanged` : "",
-            ].filter(Boolean).join(", ")
-          : "Knowledge index updated",
+        state: statuses.some((status) => status.status === "failed") ? "failed" : "saved",
+        message: summarizeIndexStatuses(statuses),
+        indexResults: {
+          ...(state.documentStatus?.indexResults || {}),
+          ...statusById,
+        },
       });
       refreshDocuments({ preserveMessage: true });
     } catch (error) {
       candidates.forEach((article) => setDocumentPending(article.id, false));
+      const message = hostedAuthRequired(error)
+        ? hostedAuthMessage(error)
+        : error.payload?.error || error.message || "Indexing failed";
+      const failedResults = Object.fromEntries(
+        candidates.map((article) => [
+          article.id,
+          {
+            status: "failed",
+            message,
+            updatedAt: new Date().toISOString(),
+          },
+        ]),
+      );
       setDocumentStatus({
         state: "failed",
-        message: hostedAuthRequired(error)
-          ? hostedAuthMessage(error)
-          : error.payload?.error || error.message || "Indexing failed",
+        message,
+        indexResults: {
+          ...(state.documentStatus?.indexResults || {}),
+          ...failedResults,
+        },
       });
     }
   }
@@ -902,6 +957,8 @@
     refreshDocuments,
     refreshDiagnostics,
     selectDocument,
+    indexArticle,
+    indexAllArticles,
     reindexDocument,
     retryDocument,
     deleteIndexedDocument,

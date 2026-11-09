@@ -38,6 +38,9 @@
       ...rawDocumentStatus,
       documents: Array.isArray(rawDocumentStatus.documents) ? rawDocumentStatus.documents : [],
       pendingIds: Array.isArray(rawDocumentStatus.pendingIds) ? rawDocumentStatus.pendingIds : [],
+      indexResults: rawDocumentStatus.indexResults && typeof rawDocumentStatus.indexResults === "object"
+        ? rawDocumentStatus.indexResults
+        : {},
       selectedId: rawDocumentStatus.selectedId ? String(rawDocumentStatus.selectedId) : "",
       diagnostics: rawDocumentStatus.diagnostics && typeof rawDocumentStatus.diagnostics === "object"
         ? rawDocumentStatus.diagnostics

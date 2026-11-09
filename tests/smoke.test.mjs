@@ -491,7 +491,8 @@ test("knowledge page shows index status and deletes from AI index before workspa
   await context.AskWellState.refreshDocuments();
   await flushAsyncWork();
   context.setTab("knowledge");
-  assert.match(app.innerHTML, /1 indexed chunk/);
+  assert.match(app.innerHTML, /Indexed/);
+  assert.match(app.innerHTML, /1 chunk/);
   await context.deleteArticle("remote");
   await flushAsyncWork();
 
@@ -560,6 +561,215 @@ test("knowledge page renders document details and empty index states", async () 
   assert.match(app.innerHTML, /abcdef1234/);
   assert.match(app.innerHTML, /Update index/);
   assert.match(app.innerHTML, /Delete Document/);
+});
+
+test("bulk article indexing sends existing article ids and reports created and unchanged states", async () => {
+  const calls = [];
+  let documents = [];
+  const initialState = {
+    version: 1,
+    tab: "knowledge",
+    settings: { brand: "Bulk", accent: "#ef7d62", welcome: "Hi" },
+    articles: [
+      { id: "trial", title: "Trial", tags: ["billing"], content: "Trial content" },
+      { id: "install", title: "Install", tags: ["setup"], content: "Install content" },
+    ],
+    conversations: [],
+    messages: [],
+    documentStatus: {
+      state: "saved",
+      message: "Knowledge index ready",
+      documents: [],
+      pendingIds: [],
+      indexResults: {},
+    },
+  };
+  const { app, context } = createAppContext({
+    localStorage: { "askwell-lite-state": JSON.stringify(initialState) },
+    location: { protocol: "http:" },
+    fetch: async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      if (String(url).includes("/api/ai/ingest")) {
+        const body = JSON.parse(options.body || "{}");
+        const incomingDocuments = body.documents || body.articles || [];
+        documents = incomingDocuments.map((document, index) => ({
+          id: document.id,
+          title: document.title,
+          source_type: document.source_type || "article",
+          chunk_count: index + 1,
+          updated_at: "2026-11-09T00:00:00.000Z",
+        }));
+        return {
+          ok: true,
+          async json() {
+            return {
+              status: "ok",
+              document_statuses: [
+                { id: "trial", status: "created", version: 1 },
+                { id: "install", status: "unchanged", version: 1 },
+              ],
+            };
+          },
+        };
+      }
+      if (String(url).includes("/api/ai/documents")) {
+        return {
+          ok: true,
+          async json() {
+            return { documents };
+          },
+        };
+      }
+      return {
+        ok: true,
+        async json() {
+          return {
+            version: 1,
+            settings: initialState.settings,
+            articles: initialState.articles,
+            conversations: [],
+          };
+        },
+      };
+    },
+  });
+
+  await context.indexAllArticles();
+  await flushAsyncWork();
+
+  const ingestCall = calls.find((call) => call.url.includes("/api/ai/ingest"));
+  const body = JSON.parse(ingestCall.options.body);
+  const ingestedDocuments = body.documents || body.articles || [];
+  assert.deepEqual(ingestedDocuments.map((document) => document.id), ["trial", "install"]);
+  assert.equal(ingestedDocuments.some((document) => String(document.id).includes("synthetic")), false);
+  assert.match(app.innerHTML, /1 created, 1 unchanged/);
+  assert.match(app.innerHTML, /2 indexed/);
+  assert.match(app.innerHTML, /Indexed/);
+  assert.match(app.innerHTML, /2 chunks/);
+});
+
+test("article indexing prevents duplicate submissions while pending", async () => {
+  const pendingState = {
+    version: 1,
+    tab: "knowledge",
+    settings: { brand: "Pending", accent: "#ef7d62", welcome: "Hi" },
+    articles: [{ id: "trial", title: "Trial", tags: [], content: "Trial content" }],
+    conversations: [],
+    messages: [],
+    documentStatus: {
+      state: "saving",
+      message: "Indexing 1 article",
+      documents: [],
+      pendingIds: ["trial"],
+      indexResults: {},
+    },
+  };
+  const { app, context } = createAppContext({
+    localStorage: { "askwell-lite-state": JSON.stringify(pendingState) },
+    location: { protocol: "http:" },
+    fetch: async () => {
+      throw new Error("duplicate indexing should not call fetch");
+    },
+  });
+
+  await context.indexAllArticles();
+  await context.indexArticle("trial");
+  assert.match(app.innerHTML, /Indexing/);
+  assert.match(app.innerHTML, /disabled/);
+});
+
+test("article indexing surfaces partial failures and allows retry", async () => {
+  const calls = [];
+  let failTrial = true;
+  let documents = [{ id: "install", title: "Install", source_type: "article", chunk_count: 1 }];
+  const initialState = {
+    version: 1,
+    tab: "knowledge",
+    settings: { brand: "Partial", accent: "#ef7d62", welcome: "Hi" },
+    articles: [
+      { id: "trial", title: "Trial", tags: ["billing"], content: "Trial content" },
+      { id: "install", title: "Install", tags: ["setup"], content: "Install content" },
+    ],
+    conversations: [],
+    messages: [],
+    documentStatus: {
+      state: "saved",
+      message: "Knowledge index ready",
+      documents,
+      pendingIds: [],
+      indexResults: {},
+    },
+  };
+  const { app, context } = createAppContext({
+    localStorage: { "askwell-lite-state": JSON.stringify(initialState) },
+    location: { protocol: "http:" },
+    fetch: async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      if (String(url).includes("/api/ai/ingest")) {
+        const body = JSON.parse(options.body || "{}");
+        const incomingDocuments = body.documents || body.articles || [];
+        if (incomingDocuments.some((document) => document.id === "trial") && failTrial) {
+          return {
+            ok: true,
+            async json() {
+              return {
+                status: "partial",
+                document_statuses: [
+                  { id: "trial", status: "failed", error: "Embedding failed" },
+                  { id: "install", status: "unchanged", version: 1 },
+                ],
+              };
+            },
+          };
+        }
+        documents = [
+          ...documents.filter((document) => document.id !== "trial"),
+          { id: "trial", title: "Trial", source_type: "article", chunk_count: 1 },
+        ];
+        return {
+          ok: true,
+          async json() {
+            return { status: "ok", document_statuses: [{ id: "trial", status: "created", version: 1 }] };
+          },
+        };
+      }
+      if (String(url).includes("/api/ai/documents")) {
+        return {
+          ok: true,
+          async json() {
+            return { documents };
+          },
+        };
+      }
+      return {
+        ok: true,
+        async json() {
+          return {
+            version: 1,
+            settings: initialState.settings,
+            articles: initialState.articles,
+            conversations: [],
+          };
+        },
+      };
+    },
+  });
+
+  await context.indexAllArticles();
+  await flushAsyncWork();
+  assert.match(app.innerHTML, /1 unchanged, 1 failed/);
+  assert.match(app.innerHTML, /Embedding failed/);
+  assert.match(app.innerHTML, /Retry index/);
+
+  failTrial = false;
+  await context.indexArticle("trial");
+  await flushAsyncWork();
+  const retryCall = calls.filter((call) => call.url.includes("/api/ai/ingest")).at(-1);
+  const retryBody = JSON.parse(retryCall.options.body);
+  const retryDocuments = retryBody.documents || retryBody.articles || [];
+  assert.deepEqual(retryDocuments.map((document) => document.id), ["trial"]);
+  assert.match(app.innerHTML, /1 created/);
+  assert.match(app.innerHTML, /2 indexed/);
 });
 
 test("document delete action confirms, removes indexed document, and refreshes diagnostics", async () => {

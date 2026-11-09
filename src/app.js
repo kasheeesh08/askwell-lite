@@ -206,6 +206,12 @@
       button.addEventListener("click", () => store.selectDocument(button.dataset.selectDocument));
     });
 
+    root.document.querySelectorAll("[data-index-article]").forEach((button) => {
+      button.addEventListener("click", () => store.indexArticle(button.dataset.indexArticle));
+    });
+
+    root.document.querySelector("[data-index-all]")?.addEventListener("click", store.indexAllArticles);
+
     root.document.querySelectorAll("[data-reindex-document]").forEach((button) => {
       button.addEventListener("click", () => store.reindexDocument(button.dataset.reindexDocument));
     });
@@ -249,6 +255,8 @@
   root.addArticle = store.addArticle;
   root.deleteArticle = store.deleteArticle;
   root.selectDocument = store.selectDocument;
+  root.indexArticle = store.indexArticle;
+  root.indexAllArticles = store.indexAllArticles;
   root.reindexDocument = store.reindexDocument;
   root.retryDocument = store.retryDocument;
   root.deleteIndexedDocument = store.deleteIndexedDocument;

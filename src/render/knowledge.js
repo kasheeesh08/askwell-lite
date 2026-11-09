@@ -16,6 +16,10 @@
     return Array.isArray(tags) ? tags.join(", ") : "";
   }
 
+  function validArticle(article) {
+    return Boolean(article?.title && article?.content);
+  }
+
   function needsPrivateDemoSession(status, runtimeConfig) {
     if (runtimeConfig?.apiMode === "hosted") return !runtimeConfig.authenticated;
     const messages = [
@@ -39,8 +43,13 @@
     const status = state.documentStatus || {};
     const documents = Array.isArray(status.documents) ? status.documents : [];
     const pendingDocumentIds = Array.isArray(status.pendingIds) ? status.pendingIds : [];
+    const indexResults = status.indexResults && typeof status.indexResults === "object"
+      ? status.indexResults
+      : {};
     const indexedById = new Map(documents.map((document) => [document.id, document]));
     const pendingIds = new Set(pendingDocumentIds);
+    const validArticleCount = state.articles.filter(validArticle).length;
+    const anyIndexing = pendingDocumentIds.length > 0;
     const diagnostics = status.diagnostics && typeof status.diagnostics === "object"
       ? status.diagnostics
       : null;
@@ -175,6 +184,23 @@
       .map((article) => {
         const indexed = indexedById.get(article.id);
         const pending = pendingIds.has(article.id);
+        const indexResult = indexResults[article.id] || {};
+        const failed = !pending && (indexResult.status === "failed" || indexed?.retryable || indexed?.last_error);
+        const articleIndexState = pending
+          ? "Indexing"
+          : failed
+            ? "Failed"
+            : indexed
+              ? "Indexed"
+              : "Not indexed";
+        const articleIndexDetail = pending
+          ? "Embedding now"
+          : failed
+            ? indexResult.message || indexed?.last_error || "Indexing failed"
+            : indexed
+              ? `${indexed.chunk_count || 0} chunk${indexed.chunk_count === 1 ? "" : "s"}`
+              : `ID ${article.id}`;
+        const indexActionLabel = failed ? "Retry index" : indexed ? "Re-index" : "Index";
         return `
         <article class="article">
           <div class="article-top">
@@ -185,9 +211,14 @@
           </div>
           <p>${escapeHtml(article.content)}</p>
           <div class="article-meta">
-            <span>${indexed ? `${indexed.chunk_count} indexed chunk${indexed.chunk_count === 1 ? "" : "s"}` : "Not indexed yet"}</span>
-            <span>${pending ? "Working..." : escapeHtml(indexed?.source_type || "article")}</span>
-            <span>${indexed ? `Updated ${escapeHtml(formatDate(indexed.updated_at))}` : `ID ${escapeHtml(article.id)}`}</span>
+            <span>${escapeHtml(articleIndexState)}</span>
+            <span>${escapeHtml(articleIndexDetail)}</span>
+            <span>${indexed ? `Updated ${escapeHtml(formatDate(indexed.updated_at))}` : escapeHtml(indexed?.source_type || "article")}</span>
+          </div>
+          <div class="action-row compact">
+            <button class="button secondary" data-index-article="${escapeHtml(article.id)}" ${pending || !validArticle(article) ? "disabled" : ""}>
+              ${icons.activity} ${escapeHtml(indexActionLabel)}
+            </button>
           </div>
           <div class="tag-row">
             ${article.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
@@ -201,7 +232,7 @@
     ${pageHeader(
       "Knowledge base",
       "Add the answers your customer widget should know. The demo chatbot uses these articles immediately.",
-      `<button class="button secondary" data-reset>${icons.reset} Reset demo</button>`,
+      `<button class="button secondary" data-index-all ${anyIndexing || !validArticleCount ? "disabled" : ""}>${icons.activity} Index all articles</button><button class="button secondary" data-reset>${icons.reset} Reset demo</button>`,
     )}
     <section class="toolbar-panel">
       <label class="field">
