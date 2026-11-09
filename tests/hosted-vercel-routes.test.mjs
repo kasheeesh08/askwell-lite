@@ -5,7 +5,11 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
 
-import hostedApiRoute from "../api/[...path].mjs";
+import aiRoute from "../api/ai.mjs";
+import authRoute from "../api/auth.mjs";
+import configRoute from "../api/config.mjs";
+import conversationsRoute from "../api/conversations.mjs";
+import workspaceRoute from "../api/workspace.mjs";
 import { createHostedRoute } from "../src/hosted/vercel-route.mjs";
 import { createHostedSession, resetHostedSessionRevocationsForTests } from "../src/hosted/session.mjs";
 import {
@@ -15,21 +19,18 @@ import {
 } from "../src/hosted/storage-contract.mjs";
 
 const adminToken = "test-admin-token";
-const configRoute = hostedApiRoute;
-const loginRoute = hostedApiRoute;
-const logoutRoute = hostedApiRoute;
-const sessionRoute = hostedApiRoute;
-const workspaceRoute = hostedApiRoute;
-const healthRoute = hostedApiRoute;
-const diagnosticsRoute = hostedApiRoute;
-const ingestRoute = hostedApiRoute;
-const answerRoute = hostedApiRoute;
-const documentsRoute = hostedApiRoute;
-const deleteDocumentRoute = hostedApiRoute;
-const conversationsRoute = hostedApiRoute;
-const conversationRoute = hostedApiRoute;
-const conversationMessagesRoute = hostedApiRoute;
-const conversationStatusRoute = hostedApiRoute;
+const loginRoute = authRoute;
+const logoutRoute = authRoute;
+const sessionRoute = authRoute;
+const healthRoute = aiRoute;
+const diagnosticsRoute = aiRoute;
+const ingestRoute = aiRoute;
+const answerRoute = aiRoute;
+const documentsRoute = aiRoute;
+const deleteDocumentRoute = aiRoute;
+const conversationRoute = conversationsRoute;
+const conversationMessagesRoute = conversationsRoute;
+const conversationStatusRoute = conversationsRoute;
 
 function vector(first = 1, second = 0) {
   const values = Array.from({ length: SUPPORTED_EMBEDDING_PROFILE.dimension }, () => 0);
@@ -190,6 +191,11 @@ test("vercel deployment config keeps local runtimes out of hosted functions", as
   assert.equal(vercelConfig.framework, null);
   assert.equal(JSON.stringify(vercelConfig).includes("server.mjs"), false);
   assert.equal(JSON.stringify(vercelConfig).includes("ai-service"), false);
+  assert.deepEqual(vercelConfig.rewrites, [
+    { source: "/api/auth/:path*", destination: "/api/auth?path=:path*" },
+    { source: "/api/ai/:path*", destination: "/api/ai?path=:path*" },
+    { source: "/api/conversations/:path*", destination: "/api/conversations?path=:path*" },
+  ]);
 
   assert.ok(ignored.includes("server.mjs"));
   assert.ok(ignored.includes("ai-service/"));
@@ -204,7 +210,7 @@ test("vercel deployment config keeps local runtimes out of hosted functions", as
   assert.equal(ignored.includes("askwell-widget.js"), false);
 });
 
-test("frontend hosted API URLs have matching Vercel route files", async () => {
+test("frontend hosted API URLs have matching grouped Vercel route files", async () => {
   const apiClient = await readFile("src/api.js", "utf8");
   const frontendRoutes = [
     "./api/config",
@@ -221,8 +227,16 @@ test("frontend hosted API URLs have matching Vercel route files", async () => {
     "/messages",
     "/status",
   ];
-  await access("api/[...path].mjs");
-  assert.deepEqual(await listApiModules("api"), ["api/[...path].mjs"]);
+  await access("api/auth.mjs");
+  await access("api/ai.mjs");
+  await access("api/conversations.mjs");
+  assert.deepEqual(await listApiModules("api"), [
+    "api/ai.mjs",
+    "api/auth.mjs",
+    "api/config.mjs",
+    "api/conversations.mjs",
+    "api/workspace.mjs",
+  ]);
 
   for (const frontendUrl of frontendRoutes) {
     assert.match(apiClient, new RegExp(frontendUrl.replace(/[./]/g, "\\$&")));
@@ -470,7 +484,7 @@ test("hosted cookie-authenticated writes reject missing CSRF tokens", async () =
   });
 });
 
-test("consolidated vercel route covers workspace, health, diagnostics, ingest, answer, docs, conversations, and deletion", async () => {
+test("grouped vercel routes cover workspace, health, diagnostics, ingest, answer, docs, conversations, and deletion", async () => {
   await withHostedEnv(async () => {
     const auth = (await loginSession()).headers;
 
@@ -671,11 +685,100 @@ test("consolidated vercel route covers workspace, health, diagnostics, ingest, a
   });
 });
 
-test("consolidated vercel route returns 404 for unknown API paths", async () => {
+test("grouped vercel routes return 404 for unknown API paths", async () => {
   await withHostedEnv(async () => {
-    const result = await call(hostedApiRoute, request({ url: "/api/unknown" }));
-    assert.equal(result.status, 404);
-    assert.equal(result.body.code, "not_found");
+    const unknownAuth = await call(authRoute, request({ url: "/api/auth/missing" }));
+    const unknownAi = await call(aiRoute, request({ url: "/api/ai/missing" }));
+    const unknownConversation = await call(conversationsRoute, request({ url: "/api/conversations/conversation-1/unknown" }));
+    assert.equal(unknownAuth.status, 404);
+    assert.equal(unknownAi.status, 404);
+    assert.equal(unknownConversation.status, 404);
+    assert.equal(unknownAuth.body.code, "not_found");
+    assert.equal(unknownAi.body.code, "not_found");
+    assert.equal(unknownConversation.body.code, "not_found");
+  });
+});
+
+test("vercel rewrite destinations route nested auth, AI, and conversation paths", async () => {
+  await withHostedEnv(async () => {
+    const login = await call(
+      authRoute,
+      request({
+        method: "POST",
+        url: "/api/auth?path=login",
+        query: { path: "login" },
+        body: { accessCredential: adminToken },
+      }),
+    );
+    assert.equal(login.status, 200);
+    const cookie = login.headers["set-cookie"].split(";")[0];
+    const auth = { cookie, "x-askwell-csrf-token": login.body.csrfToken };
+
+    const session = await call(
+      authRoute,
+      request({ url: "/api/auth?path=session", query: { path: "session" }, headers: auth }),
+    );
+    assert.equal(session.status, 200);
+    assert.equal(session.body.authenticated, true);
+
+    const health = await call(
+      aiRoute,
+      request({ url: "/api/ai?path=health", query: { path: "health" }, headers: auth }),
+    );
+    assert.equal(health.status, 200);
+
+    const created = await call(
+      ingestRoute,
+      request({
+        method: "POST",
+        url: "/api/ai?path=ingest",
+        query: { path: "ingest" },
+        headers: auth,
+        body: ingestPayload(),
+      }),
+    );
+    assert.equal(created.status, 200);
+
+    const deleted = await call(
+      deleteDocumentRoute,
+      request({
+        method: "DELETE",
+        url: "/api/ai?path=documents/trial",
+        query: { path: "documents/trial" },
+        headers: auth,
+      }),
+    );
+    assert.equal(deleted.status, 200);
+    assert.equal(deleted.body.deleted, true);
+
+    const conversation = await call(
+      conversationsRoute,
+      request({
+        method: "POST",
+        url: "/api/conversations",
+        headers: auth,
+        body: {
+          workspaceId: "default",
+          id: "conversation-rewrite",
+          customerId: "visitor-rewrite",
+          messages: [{ id: "message-1", senderType: "customer", content: "Hello" }],
+        },
+      }),
+    );
+    assert.equal(conversation.status, 200);
+
+    const message = await call(
+      conversationMessagesRoute,
+      request({
+        method: "POST",
+        url: "/api/conversations?path=conversation-rewrite/messages",
+        query: { path: "conversation-rewrite/messages" },
+        headers: auth,
+        body: { senderType: "agent", content: "Hi there" },
+      }),
+    );
+    assert.equal(message.status, 200);
+    assert.equal(message.body.message.senderType, "agent");
   });
 });
 

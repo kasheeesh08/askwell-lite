@@ -1,6 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
+  "rewrites": [
+    { "source": "/api/auth/:path*", "destination": "/api/auth?path=:path*" },
+    { "source": "/api/ai/:path*", "destination": "/api/ai?path=:path*" },
+    { "source": "/api/conversations/:path*", "destination": "/api/conversations?path=:path*" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
