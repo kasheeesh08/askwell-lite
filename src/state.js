@@ -81,6 +81,7 @@
 
   let state = loadState();
   let remoteSaveTimer;
+  let diagnosticsRefreshPromise = null;
   let saveStatus = {
     state: api.remoteApiAvailable() ? "idle" : "local",
     message: api.remoteApiAvailable() ? "Ready" : "Local fallback",
@@ -109,7 +110,16 @@
   }
 
   function resetForm(formElement) {
-    if (formElement && typeof formElement.reset === "function") formElement.reset();
+    if (!formElement) return false;
+    try {
+      const reset = formElement.reset;
+      if (typeof reset !== "function") return false;
+      reset.call(formElement);
+      return true;
+    } catch (error) {
+      root.console?.warn?.("AskWell skipped form reset after the form became unavailable.", error);
+      return false;
+    }
   }
 
   function hostedAuthRequired(error) {
@@ -199,7 +209,7 @@
       saveStatus = { state: "saved", message: `Synced v${state.version}` };
       saveLocalState();
       notify();
-      refreshDocuments();
+      await refreshDocuments();
     } catch (error) {
       if (api.isHostedMode() && hostedAuthRequired(error)) {
         const message = hostedAuthMessage(error);
@@ -367,29 +377,41 @@
 
   async function refreshDiagnostics() {
     if (!api.remoteApiAvailable()) return;
-    setDocumentStatus({
-      diagnosticsState: "loading",
-      diagnosticsMessage: "Checking storage diagnostics",
-    });
-    try {
-      const diagnostics = await api.getDiagnostics();
-      const stateName = diagnostics.status === "healthy" ? "saved" : "warning";
+    if (diagnosticsRefreshPromise) return diagnosticsRefreshPromise;
+    diagnosticsRefreshPromise = (async () => {
       setDocumentStatus({
-        diagnostics,
-        diagnosticsState: stateName,
-        diagnosticsMessage: diagnostics.last_error || `Storage ${diagnostics.status || "checked"}`,
-        documents: Array.isArray(diagnostics.documents)
-          ? diagnostics.documents
-          : state.documentStatus.documents,
+        diagnosticsState: "loading",
+        diagnosticsMessage: "Checking storage diagnostics",
       });
-    } catch (error) {
-      setDocumentStatus({
-        diagnosticsState: "failed",
-        diagnosticsMessage: hostedAuthRequired(error)
+      try {
+        const diagnostics = await api.getDiagnostics();
+        const stateName = diagnostics.status === "healthy" ? "saved" : "warning";
+        setDocumentStatus({
+          diagnostics,
+          diagnosticsState: stateName,
+          diagnosticsMessage: diagnostics.last_error || `Storage ${diagnostics.status || "checked"}`,
+          documents: Array.isArray(diagnostics.documents)
+            ? diagnostics.documents
+            : state.documentStatus.documents,
+        });
+      } catch (error) {
+        const message = hostedAuthRequired(error)
           ? hostedAuthMessage(error)
-          : error.payload?.error || error.message || "Diagnostics unavailable",
-      });
-    }
+          : error.payload?.error || error.message || "Diagnostics unavailable";
+        setDocumentStatus({
+          diagnostics: {
+            backend: api.isHostedMode() ? "hosted" : "unknown",
+            status: "unavailable",
+            last_error: message,
+          },
+          diagnosticsState: "failed",
+          diagnosticsMessage: message,
+        });
+      } finally {
+        diagnosticsRefreshPromise = null;
+      }
+    })();
+    return diagnosticsRefreshPromise;
   }
 
   function selectDocument(id) {

@@ -1617,6 +1617,172 @@ test("knowledge private demo sign-in continues when browser clears event current
   assert.match(app.innerHTML, /1 indexed/);
 });
 
+test("knowledge private demo sign-in keeps hydrating when a detached form reset fails", async () => {
+  const calls = [];
+  let loggedIn = false;
+  let resetWarnings = 0;
+  let submittedForm = null;
+  const { app, context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      return {
+        ok: loggedIn || !String(url).includes("/api/auth/session"),
+        status: loggedIn || !String(url).includes("/api/auth/session") ? 200 : 401,
+        async json() {
+          if (String(url).includes("/api/config")) {
+            return { apiMode: "hosted", hostedConfigured: true };
+          }
+          if (String(url).includes("/api/auth/session")) {
+            if (loggedIn && submittedForm) submittedForm.isConnected = false;
+            return loggedIn
+              ? { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" }
+              : { error: "Private demo session is required", code: "missing_admin_auth" };
+          }
+          if (String(url).includes("/api/auth/login")) {
+            loggedIn = true;
+            return { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" };
+          }
+          if (String(url).includes("/api/workspace")) {
+            return { version: 4, settings: { brand: "Hosted Demo" }, articles: [], conversations: [] };
+          }
+          if (String(url).includes("/api/ai/documents")) {
+            return { documents: [{ id: "doc-1", title: "Demo doc", status: "indexed", chunk_count: 1 }] };
+          }
+          if (String(url).includes("/api/ai/diagnostics")) {
+            return {
+              status: "healthy",
+              backend: "hosted",
+              documentCount: 1,
+              chunkCount: 1,
+              embeddingCount: 1,
+              documents: [{ id: "doc-1", title: "Demo doc", status: "indexed", chunk_count: 1 }],
+            };
+          }
+          return {};
+        },
+      };
+    },
+  });
+  context.console = {
+    ...console,
+    warn() {
+      resetWarnings += 1;
+    },
+  };
+  await flushAsyncWork();
+  context.setTab("knowledge");
+
+  const form = new FakeElement("private-demo-login");
+  form.fields = { accessCredential: "private-demo-secret" };
+  form.isConnected = true;
+  Object.defineProperty(form, "reset", {
+    configurable: true,
+    get() {
+      return () => {
+        if (!form.isConnected) throw new TypeError("Cannot read properties of null (reading 'reset')");
+        form.resetCalled = true;
+      };
+    },
+  });
+
+  submittedForm = form;
+  await context.loginPrivateDemo({
+    preventDefault() {},
+    currentTarget: form,
+  });
+  await flushAsyncWork();
+
+  assert.equal(resetWarnings, 1);
+  assert.equal(context.AskWellApi.runtimeConfig.authenticated, true);
+  assert.ok(calls.some((call) => call.url.includes("/api/workspace")));
+  assert.ok(calls.some((call) => call.url.includes("/api/ai/documents")));
+  assert.ok(calls.some((call) => call.url.includes("/api/ai/diagnostics")));
+  assert.match(app.innerHTML, /Private demo session active/);
+  assert.match(app.innerHTML, /Storage healthy/);
+  assert.match(app.innerHTML, /1 indexed/);
+  assert.doesNotMatch(app.innerHTML, /Cannot read properties of null/);
+});
+
+test("diagnostics failures show the API error and repeated checks share the pending request", async () => {
+  let diagnosticsCalls = 0;
+  let resolveDiagnostics;
+  const diagnosticsStarted = new Promise((resolve) => {
+    resolveDiagnostics = resolve;
+  });
+  const { app, context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async (url) => {
+      if (String(url).includes("/api/config")) {
+        return {
+          ok: true,
+          async json() {
+            return { apiMode: "hosted", hostedConfigured: true };
+          },
+        };
+      }
+      if (String(url).includes("/api/auth/session")) {
+        return {
+          ok: true,
+          async json() {
+            return { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" };
+          },
+        };
+      }
+      if (String(url).includes("/api/workspace")) {
+        return {
+          ok: true,
+          async json() {
+            return { version: 1, settings: {}, articles: [], conversations: [] };
+          },
+        };
+      }
+      if (String(url).includes("/api/ai/documents")) {
+        return {
+          ok: true,
+          async json() {
+            return { documents: [] };
+          },
+        };
+      }
+      if (String(url).includes("/api/ai/diagnostics")) {
+        diagnosticsCalls += 1;
+        await diagnosticsStarted;
+        return {
+          ok: false,
+          status: 503,
+          async json() {
+            return { error: "Hosted storage timeout", code: "storage_unavailable" };
+          },
+        };
+      }
+      return {
+        ok: true,
+        async json() {
+          return {};
+        },
+      };
+    },
+  });
+  await flushAsyncWork();
+  context.setTab("knowledge");
+
+  const first = context.AskWellState.refreshDiagnostics();
+  const second = context.AskWellState.refreshDiagnostics();
+  await Promise.resolve();
+  assert.equal(diagnosticsCalls, 1);
+  resolveDiagnostics();
+  await Promise.all([first, second]);
+  await flushAsyncWork();
+
+  assert.equal(diagnosticsCalls, 1);
+  assert.match(app.innerHTML, /Hosted storage timeout/);
+  assert.match(app.innerHTML, /hosted \/ unavailable/);
+  assert.doesNotMatch(app.innerHTML, /Diagnostics unavailable/);
+});
+
 test("hosted expired sessions clear client state and show sign-in recovery", async () => {
   const { app, context } = createAppContext({
     location: { protocol: "https:" },
