@@ -1,6 +1,7 @@
 (function attachState(root) {
   const STORAGE_KEY = "askwell-lite-state";
   const ADMIN_TOKEN_KEY = "askwell-admin-token";
+  const VISITOR_ID_KEY = "askwell-visitor-id";
   const { clone, makeId } = root.AskWellUtils;
   const { normalizeState, articleFromForm, documentUpdateFromForm, isValidArticle } = root.AskWellValidation;
   const { answerQuestion } = root.AskWellRetrieval;
@@ -108,6 +109,15 @@
   function getAdminToken() {
     if (api.isHostedMode()) return "";
     return root.localStorage.getItem(ADMIN_TOKEN_KEY);
+  }
+
+  function getVisitorId() {
+    let visitorId = root.localStorage.getItem(VISITOR_ID_KEY);
+    if (!visitorId) {
+      visitorId = `anonymous-${makeId()}`;
+      root.localStorage.setItem(VISITOR_ID_KEY, visitorId);
+    }
+    return visitorId;
   }
 
   function resetForm(formElement) {
@@ -792,6 +802,17 @@
   }
 
   function pushConversation(question, result, status = "open") {
+    const conversation = {
+      id: makeId(),
+      status,
+      question,
+      answer: result.answer,
+      sources: result.sources,
+      citations: result.citations || [],
+      generation: result.generation || null,
+      fallbackReason: result.fallbackReason || null,
+      createdAt: new Date().toISOString(),
+    };
     state = {
       ...state,
       messages: [
@@ -807,20 +828,50 @@
         },
       ].slice(-10),
       conversations: [
-        {
-          id: makeId(),
-          status,
-          question,
-          answer: result.answer,
-          sources: result.sources,
-          citations: result.citations || [],
-          generation: result.generation || null,
-          fallbackReason: result.fallbackReason || null,
-          createdAt: new Date().toISOString(),
-        },
+        conversation,
         ...state.conversations,
       ].slice(0, 20),
     };
+    return conversation;
+  }
+
+  async function persistHostedConversation(question, result, status = "open") {
+    if (!api.remoteApiAvailable() || !api.isHostedMode()) return;
+    try {
+      await api.createConversation({
+        customerId: getVisitorId(),
+        status,
+        metadata: {
+          source: "widget",
+          fallbackReason: result.fallbackReason || null,
+          insufficientContext: Boolean(result.insufficientContext),
+          citations: result.citations || [],
+        },
+        messages: [
+          {
+            senderType: "customer",
+            content: question,
+            metadata: { source: "widget" },
+          },
+          {
+            senderType: "assistant",
+            content: result.answer,
+            metadata: {
+              sources: result.sources || [],
+              citations: result.citations || [],
+              generation: result.generation || null,
+              fallbackReason: result.fallbackReason || null,
+              insufficientContext: Boolean(result.insufficientContext),
+            },
+          },
+        ],
+      });
+    } catch (error) {
+      saveStatus = {
+        state: "failed",
+        message: error.payload?.error || error.message || "Conversation persistence failed",
+      };
+    }
   }
 
   function resetDemo() {
@@ -910,14 +961,16 @@
           ...state,
           messages: state.messages.slice(0, -1),
         };
-        pushConversation(question, {
+        const result = {
           answer: aiResult.answer,
           sources: aiResult.sources || [],
           citations: aiResult.citations || [],
           generation: aiResult.generation || null,
           fallbackReason: aiResult.fallback_reason || null,
           insufficientContext: aiResult.insufficient_context,
-        });
+        };
+        pushConversation(question, result);
+        await persistHostedConversation(question, result);
         saveState();
         notify();
         return;
@@ -926,18 +979,21 @@
           ...state,
           messages: state.messages.slice(0, -1),
         };
-        pushConversation(question, {
+        const result = {
           ...localAnswer(question),
           sources: [`AI generation unavailable - local fallback (${error.message || "unknown error"})`],
           fallbackReason: "ai_generation_error",
-        });
+        };
+        pushConversation(question, result);
+        await persistHostedConversation(question, result);
         saveState();
         notify();
         return;
       }
     }
 
-    pushConversation(question, localAnswer(question));
+    const result = localAnswer(question);
+    pushConversation(question, result);
     saveState();
     notify();
   }
@@ -945,6 +1001,7 @@
   root.AskWellState = {
     STORAGE_KEY,
     ADMIN_TOKEN_KEY,
+    VISITOR_ID_KEY,
     defaultSettings,
     defaultState,
     normalize,

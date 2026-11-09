@@ -113,7 +113,7 @@ test("turso adapter initializes schema, profiles, and default workspace with loc
     const adapter = await openAdapter();
     const diagnostics = await adapter.diagnostics("default");
     assert.equal(diagnostics.backend, "turso-libsql-hosted");
-    assert.equal(diagnostics.schemaVersion, 1);
+    assert.equal(diagnostics.schemaVersion, 2);
     assert.equal((await adapter.getWorkspace("default")).version, 1);
   });
 });
@@ -148,6 +148,68 @@ test("turso adapter persists hosted session revocation across instances", async 
     await first.revokeSession("session-b", past);
     assert.equal(await second.isSessionRevoked("session-b"), false);
   });
+});
+
+test("turso adapter persists conversations, ordered messages, and workspace isolation", async () => {
+  await withTempTurso(
+    async ({ openAdapter }) => {
+      let adapter = await openAdapter();
+      const created = await adapter.createConversation(
+        {
+          workspaceId: "default",
+          id: "conversation-1",
+          customerId: "visitor-1",
+          messages: [
+            { id: "message-1", senderType: "customer", content: "Can I export conversations?" },
+            { id: "message-2", senderType: "assistant", content: "Yes, export before cancelling." },
+          ],
+        },
+        workspace,
+      );
+      assert.equal(created.conversation.messageCount, 2);
+      assert.deepEqual(created.messages.map((message) => message.position), [0, 1]);
+
+      const added = await adapter.addConversationMessage(
+        {
+          workspaceId: "default",
+          conversationId: "conversation-1",
+          id: "message-3",
+          senderType: "agent",
+          content: "An owner can help with exports.",
+        },
+        workspace,
+      );
+      assert.equal(added.message.position, 2);
+      assert.equal((await adapter.getConversation("default", "conversation-1")).messages.length, 3);
+      assert.equal((await adapter.listConversations("default"))[0].lastMessagePreview, "An owner can help with exports.");
+      assert.equal((await adapter.listConversations("support")).length, 0);
+
+      await assert.rejects(
+        () =>
+          adapter.addConversationMessage(
+            {
+              workspaceId: "support",
+              conversationId: "conversation-1",
+              senderType: "customer",
+              content: "Wrong workspace",
+            },
+            { workspaceId: "support" },
+          ),
+        /Conversation is not available/,
+      );
+      adapter.close();
+
+      adapter = await openAdapter();
+      const details = await adapter.getConversation("default", "conversation-1");
+      assert.deepEqual(details.messages.map((message) => message.id), ["message-1", "message-2", "message-3"]);
+    },
+    {
+      workspaces: [
+        { id: "default", version: 1 },
+        { id: "support", version: 1 },
+      ],
+    },
+  );
 });
 
 test("turso adapter preserves unchanged documents and rejects stale updates", async () => {

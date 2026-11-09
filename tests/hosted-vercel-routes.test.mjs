@@ -16,6 +16,9 @@ import ingestRoute from "../api/ai/ingest.mjs";
 import answerRoute from "../api/ai/answer.mjs";
 import documentsRoute from "../api/ai/documents/index.mjs";
 import deleteDocumentRoute from "../api/ai/documents/[id].mjs";
+import conversationsRoute from "../api/conversations/index.mjs";
+import conversationRoute from "../api/conversations/[id].mjs";
+import conversationMessagesRoute from "../api/conversations/[id]/messages.mjs";
 import { createHostedRoute } from "../src/hosted/vercel-route.mjs";
 import { createHostedSession, resetHostedSessionRevocationsForTests } from "../src/hosted/session.mjs";
 import {
@@ -465,7 +468,7 @@ test("hosted cookie-authenticated writes reject missing CSRF tokens", async () =
   });
 });
 
-test("vercel route files cover workspace, health, diagnostics, ingest, answer, docs, and deletion", async () => {
+test("vercel route files cover workspace, health, diagnostics, ingest, answer, docs, conversations, and deletion", async () => {
   await withHostedEnv(async () => {
     const auth = (await loginSession()).headers;
 
@@ -574,6 +577,57 @@ test("vercel route files cover workspace, health, diagnostics, ingest, answer, d
     assert.equal(diagnostics.status, 200);
     assert.equal(diagnostics.body.documentCount, 1);
     assert.equal(diagnostics.body.documents[0].id, "trial");
+
+    const conversation = await call(
+      conversationsRoute,
+      request({
+        method: "POST",
+        url: "/api/conversations",
+        headers: auth,
+        body: {
+          workspaceId: "default",
+          id: "conversation-1",
+          customerId: "visitor-1",
+          messages: [
+            { id: "message-1", senderType: "customer", content: "Can I export conversations?" },
+            { id: "message-2", senderType: "assistant", content: "Yes, export before cancelling." },
+          ],
+        },
+      }),
+    );
+    assert.equal(conversation.status, 200);
+    assert.equal(conversation.body.conversation.messageCount, 2);
+
+    const listedConversations = await call(conversationsRoute, request({ url: "/api/conversations", headers: auth }));
+    assert.equal(listedConversations.status, 200);
+    assert.equal(listedConversations.body.conversations.length, 1);
+
+    const addedMessage = await call(
+      conversationMessagesRoute,
+      request({
+        method: "POST",
+        url: "/api/conversations/conversation-1/messages",
+        query: { id: "conversation-1" },
+        headers: auth,
+        body: {
+          senderType: "agent",
+          content: "A support owner can follow up.",
+        },
+      }),
+    );
+    assert.equal(addedMessage.status, 200);
+    assert.equal(addedMessage.body.message.position, 2);
+
+    const conversationDetails = await call(
+      conversationRoute,
+      request({
+        url: "/api/conversations/conversation-1",
+        query: { id: "conversation-1" },
+        headers: auth,
+      }),
+    );
+    assert.equal(conversationDetails.status, 200);
+    assert.equal(conversationDetails.body.messages.length, 3);
 
     const deleted = await call(
       deleteDocumentRoute,

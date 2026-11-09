@@ -7,13 +7,15 @@ import {
   HostedContractError,
   SUPPORTED_EMBEDDING_PROFILE,
   SUPPORTED_INDEXING_PROFILE_WITH_KEY,
+  validateConversationCreateRequest,
+  validateConversationMessageRequest,
   validateDeleteDocumentRequest,
   validateHostedIngestRequest,
   validateVector,
   validateWorkspaceUpdateRequest,
 } from "./storage-contract.mjs";
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const DEFAULT_TIMEOUT_MS = 5000;
 
 export class HostedTursoAdapter {
@@ -458,6 +460,169 @@ export class HostedTursoAdapter {
     }));
   }
 
+  async createConversation(payload, context) {
+    const request = validateConversationCreateRequest(payload, context, this.limits);
+    return this._transaction(async (tx) => {
+      await this._requireWorkspace(request.workspaceId, tx);
+      await this._ensureConversationIdAvailable(request.workspaceId, request.id, tx);
+      const timestamp = now();
+      await this._execute(
+        `INSERT INTO conversations(
+          id, workspace_id, status, customer_id, metadata_json,
+          created_at, updated_at, last_message_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          request.id,
+          request.workspaceId,
+          request.status,
+          request.customerId,
+          JSON.stringify(request.metadata),
+          timestamp,
+          timestamp,
+          request.messages.length ? timestamp : null,
+        ],
+        tx,
+      );
+      for (let index = 0; index < request.messages.length; index += 1) {
+        const message = request.messages[index];
+        await this._execute(
+          `INSERT INTO conversation_messages(
+            id, workspace_id, conversation_id, position, sender_type,
+            content, metadata_json, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            message.id,
+            request.workspaceId,
+            request.id,
+            index,
+            message.senderType,
+            message.content,
+            JSON.stringify(message.metadata),
+            timestamp,
+          ],
+          tx,
+        );
+      }
+      return this.getConversation(request.workspaceId, request.id, tx);
+    });
+  }
+
+  async listConversations(workspaceId = "default") {
+    await this._requireWorkspace(workspaceId);
+    const rows = await this._all(
+      `SELECT
+         conversations.*,
+         COUNT(conversation_messages.id) AS message_count,
+         (
+           SELECT content
+           FROM conversation_messages latest
+           WHERE latest.workspace_id = conversations.workspace_id
+             AND latest.conversation_id = conversations.id
+           ORDER BY latest.position DESC
+           LIMIT 1
+         ) AS last_message_preview
+       FROM conversations
+       LEFT JOIN conversation_messages
+         ON conversation_messages.workspace_id = conversations.workspace_id
+        AND conversation_messages.conversation_id = conversations.id
+       WHERE conversations.workspace_id = ?
+       GROUP BY conversations.id
+       ORDER BY COALESCE(conversations.last_message_at, conversations.updated_at) DESC, conversations.id ASC`,
+      [workspaceId],
+    );
+    return rows.map(conversationSummaryFromRow);
+  }
+
+  async getConversation(workspaceId, conversationId, executor) {
+    await this._requireWorkspace(workspaceId, executor);
+    const conversation = await this._get(
+      "SELECT * FROM conversations WHERE workspace_id = ? AND id = ?",
+      [workspaceId, conversationId],
+      executor,
+    );
+    if (!conversation) return null;
+    const messages = await this._all(
+      `SELECT *
+       FROM conversation_messages
+       WHERE workspace_id = ? AND conversation_id = ?
+       ORDER BY position ASC, created_at ASC, id ASC`,
+      [workspaceId, conversationId],
+      executor,
+    );
+    const normalizedMessages = messages.map(messageFromRow);
+    return {
+      conversation: conversationSummaryFromRow({
+        ...conversation,
+        message_count: normalizedMessages.length,
+        last_message_preview: normalizedMessages.at(-1)?.content || "",
+      }),
+      messages: normalizedMessages,
+    };
+  }
+
+  async addConversationMessage(payload, context) {
+    const request = validateConversationMessageRequest(payload, context, this.limits);
+    return this._transaction(async (tx) => {
+      await this._requireWorkspace(request.workspaceId, tx);
+      const conversation = await this._get(
+        "SELECT * FROM conversations WHERE workspace_id = ? AND id = ?",
+        [request.workspaceId, request.conversationId],
+        tx,
+      );
+      if (!conversation) {
+        fail("unknown_conversation", "Conversation is not available in hosted storage", 404, {
+          conversationId: request.conversationId,
+        });
+      }
+      const latest = await this._get(
+        `SELECT MAX(position) AS position
+         FROM conversation_messages
+         WHERE workspace_id = ? AND conversation_id = ?`,
+        [request.workspaceId, request.conversationId],
+        tx,
+      );
+      const position = Number.isInteger(Number(latest.position)) ? Number(latest.position) + 1 : 0;
+      const timestamp = now();
+      await this._execute(
+        `INSERT INTO conversation_messages(
+          id, workspace_id, conversation_id, position, sender_type,
+          content, metadata_json, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          request.id,
+          request.workspaceId,
+          request.conversationId,
+          position,
+          request.senderType,
+          request.content,
+          JSON.stringify(request.metadata),
+          timestamp,
+        ],
+        tx,
+      );
+      await this._execute(
+        `UPDATE conversations
+         SET updated_at = ?, last_message_at = ?
+         WHERE workspace_id = ? AND id = ?`,
+        [timestamp, timestamp, request.workspaceId, request.conversationId],
+        tx,
+      );
+      return {
+        conversation: (await this.getConversation(request.workspaceId, request.conversationId, tx)).conversation,
+        message: {
+          id: request.id,
+          workspaceId: request.workspaceId,
+          conversationId: request.conversationId,
+          position,
+          senderType: request.senderType,
+          content: request.content,
+          metadata: request.metadata,
+          createdAt: timestamp,
+        },
+      };
+    });
+  }
+
   async diagnostics(workspaceId = "default") {
     await this._requireWorkspace(workspaceId);
     const documentCount = await this._get(
@@ -532,7 +697,18 @@ export class HostedTursoAdapter {
         await this._executeMultiple(SCHEMA_V1, tx);
         await this._execute(
           "INSERT INTO hosted_schema_migrations(version, name, applied_at) VALUES (?, ?, ?)",
-          [SCHEMA_VERSION, "initial-hosted-libsql-compatible-schema", now()],
+          [1, "initial-hosted-libsql-compatible-schema", now()],
+          tx,
+        );
+      });
+    }
+    const afterInitial = await this._get("SELECT MAX(version) AS version FROM hosted_schema_migrations");
+    if (Number(afterInitial.version || 0) < 2) {
+      await this._transaction(async (tx) => {
+        await this._executeMultiple(CONVERSATION_SCHEMA, tx);
+        await this._execute(
+          "INSERT INTO hosted_schema_migrations(version, name, applied_at) VALUES (?, ?, ?)",
+          [2, "conversation-persistence-schema", now()],
           tx,
         );
       });
@@ -625,6 +801,22 @@ export class HostedTursoAdapter {
         workspaceId,
         documentId,
         ownerWorkspaceId: row.workspace_id,
+      });
+    }
+  }
+
+  async _ensureConversationIdAvailable(workspaceId, conversationId, executor) {
+    const row = await this._get("SELECT workspace_id FROM conversations WHERE id = ?", [conversationId], executor);
+    if (row && row.workspace_id !== workspaceId) {
+      fail("cross_workspace_conversation_reference", "Conversation id belongs to another workspace", 409, {
+        workspaceId,
+        conversationId,
+        ownerWorkspaceId: row.workspace_id,
+      });
+    }
+    if (row) {
+      fail("conversation_exists", "Conversation already exists", 409, {
+        conversationId,
       });
     }
   }
@@ -850,6 +1042,41 @@ const SCHEMA_V1 = `
     ON ingestion_runs(workspace_id, status, started_at DESC);
 `;
 
+const CONVERSATION_SCHEMA = `
+  CREATE TABLE IF NOT EXISTS conversations (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('open', 'resolved')),
+    customer_id TEXT NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    last_message_at TEXT,
+    deleted_at TEXT,
+    UNIQUE (workspace_id, id),
+    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS conversation_messages (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    conversation_id TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    sender_type TEXT NOT NULL CHECK (sender_type IN ('customer', 'assistant', 'agent')),
+    content TEXT NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    UNIQUE (workspace_id, conversation_id, position),
+    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY (workspace_id, conversation_id) REFERENCES conversations(workspace_id, id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_conversations_workspace_status
+    ON conversations(workspace_id, status, last_message_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_conversation_messages_order
+    ON conversation_messages(workspace_id, conversation_id, position);
+`;
+
 const SECURITY_SCHEMA = `
   CREATE TABLE IF NOT EXISTS hosted_session_revocations (
     session_id TEXT PRIMARY KEY,
@@ -870,6 +1097,34 @@ function workspaceFromRow(row) {
     conversations: parseJson(row.conversations_json, "workspace conversations"),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function conversationSummaryFromRow(row) {
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    status: row.status,
+    customerId: row.customer_id,
+    metadata: parseJson(row.metadata_json, "conversation metadata"),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    lastMessageAt: row.last_message_at,
+    messageCount: Number(row.message_count || 0),
+    lastMessagePreview: row.last_message_preview || "",
+  };
+}
+
+function messageFromRow(row) {
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    conversationId: row.conversation_id,
+    position: Number(row.position),
+    senderType: row.sender_type,
+    content: row.content,
+    metadata: parseJson(row.metadata_json, "conversation message metadata"),
+    createdAt: row.created_at,
   };
 }
 

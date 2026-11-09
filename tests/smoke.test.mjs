@@ -1690,6 +1690,19 @@ test("hosted widget answers from indexed articles and abstains without evidence"
         });
         return jsonResponse(answerFromRetrieval({ question: body.question, ...retrieval }));
       }
+      if (path.includes("/api/conversations") && method === "POST") {
+        const body = JSON.parse(options.body || "{}");
+        return jsonResponse({
+          conversation: {
+            id: "conversation-1",
+            workspaceId: "default",
+            status: body.status || "open",
+            customerId: body.customerId || "anonymous",
+            messageCount: Array.isArray(body.messages) ? body.messages.length : 0,
+          },
+          messages: body.messages || [],
+        });
+      }
       return jsonResponse({ error: "not found" }, false, 404);
     },
   });
@@ -1711,6 +1724,7 @@ test("hosted widget answers from indexed articles and abstains without evidence"
   assert.match(app.innerHTML, /14 day trial/);
   assert.match(app.innerHTML, /Citations:/);
   assert.match(app.innerHTML, /trial-policy:chunk-0/);
+  assert.equal(requests.some((request) => request.path.includes("/api/conversations") && request.method === "POST"), true);
 
   const fallbackForm = new FakeElement("chat-form");
   const fallbackInput = new FakeElement("input");

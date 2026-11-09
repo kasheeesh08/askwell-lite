@@ -412,3 +412,70 @@ test("workspace updates are versioned and return structured validation errors", 
     assert.deepEqual(structuredError(error).code, "invalid_vector_dimension");
   }
 });
+
+test("memory hosted store persists conversations and ordered messages by workspace", () => {
+  const store = createMemoryHostedStore({
+    workspaces: [
+      { id: "default", version: 1 },
+      { id: "support", version: 1 },
+    ],
+  });
+
+  const created = store.createConversation(
+    {
+      workspaceId: "default",
+      id: "conversation-1",
+      customerId: "visitor-1",
+      messages: [
+        { senderType: "customer", content: "Do I need a card?" },
+        { senderType: "assistant", content: "No card is required during the trial." },
+      ],
+    },
+    workspace,
+  );
+
+  assert.equal(created.conversation.id, "conversation-1");
+  assert.equal(created.conversation.workspaceId, "default");
+  assert.equal(created.conversation.messageCount, 2);
+  assert.deepEqual(created.messages.map((message) => message.position), [0, 1]);
+
+  const added = store.addConversationMessage(
+    {
+      workspaceId: "default",
+      conversationId: "conversation-1",
+      senderType: "agent",
+      content: "A human can follow up if needed.",
+    },
+    workspace,
+  );
+  assert.equal(added.message.position, 2);
+  assert.equal(store.getConversation("default", "conversation-1").messages.length, 3);
+  assert.equal(store.listConversations("default")[0].lastMessagePreview, "A human can follow up if needed.");
+  assert.equal(store.listConversations("support").length, 0);
+
+  assert.throws(
+    () =>
+      store.addConversationMessage(
+        {
+          workspaceId: "support",
+          conversationId: "conversation-1",
+          senderType: "customer",
+          content: "Cross workspace leak",
+        },
+        { workspaceId: "support" },
+      ),
+    /Conversation is not available/,
+  );
+  assert.throws(
+    () =>
+      store.createConversation(
+        {
+          workspaceId: "default",
+          id: "bad-sender",
+          messages: [{ senderType: "system", content: "Nope" }],
+        },
+        workspace,
+      ),
+    /sender type is not supported/,
+  );
+});

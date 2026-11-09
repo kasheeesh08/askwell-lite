@@ -86,6 +86,33 @@ export async function documentDeleteRequest(req) {
   });
 }
 
+export async function conversationDetailRequest(req) {
+  const route = new URL(req.url || "/", "http://localhost");
+  const conversationId = req.query?.id || decodeURIComponent(route.pathname.split("/").filter(Boolean).at(-1) || "");
+  const target = new URL("/api/hosted/conversation", "http://localhost");
+  for (const [key, value] of route.searchParams.entries()) {
+    target.searchParams.set(key, value);
+  }
+  target.searchParams.set("conversationId", conversationId);
+  return forwardHostedRequest(req, {
+    url: `${target.pathname}${target.search}`,
+  });
+}
+
+export async function conversationMessageRequest(req) {
+  const route = new URL(req.url || "/", "http://localhost");
+  const segments = route.pathname.split("/").filter(Boolean);
+  const conversationId = req.query?.id || decodeURIComponent(segments.at(-2) || "");
+  return forwardHostedRequest(req, {
+    url: withOriginalQuery("/api/hosted/conversation-message", req.url),
+    body: {
+      ...(req.body && typeof req.body === "object" ? req.body : {}),
+      workspaceId: route.searchParams.get("workspaceId") || header(req, "x-askwell-workspace-id") || "default",
+      conversationId,
+    },
+  });
+}
+
 export function forwardHostedRequest(req, overrides = {}) {
   const mapped = Object.create(req || null);
   for (const property of ["method", "headers", "query", "body", "socket"]) {

@@ -471,6 +471,147 @@ test("vercel handler preserves workspace isolation and optimistic workspace writ
   assert.equal(isolated.body.code, "workspace_context_mismatch");
 });
 
+test("vercel handler persists customer conversations and messages with hosted session auth", async () => {
+  const store = createMemoryHostedStore({
+    workspaces: [
+      { id: "default", version: 1 },
+      { id: "support", version: 1 },
+    ],
+  });
+  const env = { ASKWELL_ADMIN_TOKEN: adminToken, ASKWELL_SESSION_SECRET: "test-secret" };
+  const handler = createHostedVercelHandler({
+    env,
+    adapterFactory: () => store,
+  });
+  const headers = sessionHeaders(env);
+
+  const created = await call(
+    handler,
+    request({
+      method: "POST",
+      url: "/api/hosted/conversations",
+      headers,
+      body: {
+        workspaceId: "default",
+        id: "conversation-1",
+        customerId: "visitor-1",
+        messages: [
+          { id: "message-1", senderType: "customer", content: "Do I need a card?" },
+          { id: "message-2", senderType: "assistant", content: "No card is required." },
+        ],
+      },
+    }),
+  );
+  assert.equal(created.status, 200);
+  assert.equal(created.body.conversation.messageCount, 2);
+
+  const listed = await call(
+    handler,
+    request({ method: "GET", url: "/api/hosted/conversations", headers: { cookie: headers.cookie } }),
+  );
+  assert.equal(listed.status, 200);
+  assert.equal(listed.body.conversations.length, 1);
+
+  const added = await call(
+    handler,
+    request({
+      method: "POST",
+      url: "/api/hosted/conversation-message",
+      headers,
+      body: {
+        workspaceId: "default",
+        conversationId: "conversation-1",
+        id: "message-3",
+        senderType: "agent",
+        content: "A human can help if needed.",
+      },
+    }),
+  );
+  assert.equal(added.status, 200);
+  assert.equal(added.body.message.position, 2);
+
+  const details = await call(
+    handler,
+    request({
+      method: "GET",
+      url: "/api/hosted/conversation?conversationId=conversation-1",
+      headers: { cookie: headers.cookie },
+    }),
+  );
+  assert.equal(details.status, 200);
+  assert.deepEqual(details.body.messages.map((message) => message.id), ["message-1", "message-2", "message-3"]);
+
+  const crossWorkspace = await call(
+    handler,
+    request({
+      method: "GET",
+      url: "/api/hosted/conversation?workspaceId=support&conversationId=conversation-1",
+      headers: { cookie: headers.cookie },
+    }),
+  );
+  assert.equal(crossWorkspace.status, 404);
+  assert.equal(crossWorkspace.body.code, "unknown_conversation");
+
+  const missingCsrf = await call(
+    handler,
+    request({
+      method: "POST",
+      url: "/api/hosted/conversation-message",
+      headers: { cookie: headers.cookie },
+      body: {
+        workspaceId: "default",
+        conversationId: "conversation-1",
+        senderType: "customer",
+        content: "Missing CSRF should fail",
+      },
+    }),
+  );
+  assert.equal(missingCsrf.status, 403);
+  assert.equal(missingCsrf.body.code, "csrf_required");
+});
+
+test("vercel handler rejects invalid conversation ids and invalid message senders", async () => {
+  const store = createMemoryHostedStore();
+  const handler = createHostedVercelHandler({
+    env: { ASKWELL_ADMIN_TOKEN: adminToken },
+    adapterFactory: () => store,
+  });
+  const headers = { "x-askwell-admin-token": adminToken };
+
+  const invalidSender = await call(
+    handler,
+    request({
+      method: "POST",
+      url: "/api/hosted/conversations",
+      headers,
+      body: {
+        workspaceId: "default",
+        id: "conversation-1",
+        messages: [{ senderType: "system", content: "Nope" }],
+      },
+    }),
+  );
+  assert.equal(invalidSender.status, 400);
+  assert.equal(invalidSender.body.code, "invalid_message_sender");
+
+  const missingConversation = await call(
+    handler,
+    request({
+      method: "POST",
+      url: "/api/hosted/conversation-message",
+      headers,
+      body: {
+        workspaceId: "default",
+        conversationId: "missing",
+        senderType: "customer",
+        content: "Hello",
+      },
+    }),
+  );
+  assert.equal(missingConversation.status, 404);
+  assert.equal(missingConversation.body.code, "unknown_conversation");
+});
+
 test("vercel answer route uses stored evidence, citations, and abstention", async () => {
   const adapter = makeRetrievalAdapter();
   adapter.ingest(ingestPayload(), { workspaceId: "default" });

@@ -3,6 +3,7 @@ import {
   HostedContractError,
   structuredError,
   validateHostedAnswerRequest,
+  validateConversationLookupRequest,
 } from "./storage-contract.mjs";
 import {
   answerFromRetrieval,
@@ -20,6 +21,9 @@ const AUTHENTICATED_PATHS = new Set([
   "/api/hosted/diagnostics",
   "/api/hosted/workspace",
   "/api/hosted/documents",
+  "/api/hosted/conversations",
+  "/api/hosted/conversation",
+  "/api/hosted/conversation-message",
   "/api/hosted/ingest",
   "/api/hosted/delete-document",
   "/api/hosted/answer",
@@ -106,6 +110,41 @@ export function createHostedVercelHandler(options = {}) {
       if (method === "GET" && route.pathname === "/api/hosted/documents") {
         const adapter = await getAdapter();
         return sendJson(res, 200, { documents: await adapter.listDocuments(workspaceId) });
+      }
+
+      if (method === "GET" && route.pathname === "/api/hosted/conversations") {
+        const adapter = await getAdapter();
+        return sendJson(res, 200, { conversations: await adapter.listConversations(workspaceId) });
+      }
+
+      if (method === "POST" && route.pathname === "/api/hosted/conversations") {
+        const body = await readJsonBody(req, limits.maxPayloadBytes);
+        const adapter = await getAdapter();
+        return sendJson(res, 200, await adapter.createConversation(body, context));
+      }
+
+      if (method === "GET" && route.pathname === "/api/hosted/conversation") {
+        const request = validateConversationLookupRequest(
+          {
+            workspaceId,
+            conversationId: route.searchParams.get("conversationId"),
+          },
+          context,
+        );
+        const adapter = await getAdapter();
+        const conversation = await adapter.getConversation(request.workspaceId, request.conversationId);
+        if (!conversation) {
+          throw new HostedContractError("unknown_conversation", "Conversation is not available in hosted storage", 404, {
+            conversationId: request.conversationId,
+          });
+        }
+        return sendJson(res, 200, conversation);
+      }
+
+      if (method === "POST" && route.pathname === "/api/hosted/conversation-message") {
+        const body = await readJsonBody(req, limits.maxPayloadBytes);
+        const adapter = await getAdapter();
+        return sendJson(res, 200, await adapter.addConversationMessage(body, context));
       }
 
       if (method === "POST" && route.pathname === "/api/hosted/ingest") {

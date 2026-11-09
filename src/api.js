@@ -217,6 +217,47 @@
     });
   }
 
+  async function createConversation(payload) {
+    return normalizeConversationDetails(await requestJson("./api/conversations", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify(payload || {}),
+    }));
+  }
+
+  async function listConversations() {
+    const payload = await requestJson("./api/conversations", {
+      headers: {},
+    });
+    return Array.isArray(payload.conversations)
+      ? payload.conversations.map(normalizeConversationSummary)
+      : [];
+  }
+
+  async function getConversation(conversationId) {
+    return normalizeConversationDetails(await requestJson(`./api/conversations/${encodeURIComponent(conversationId)}`, {
+      headers: {},
+    }));
+  }
+
+  async function addConversationMessage(conversationId, payload) {
+    const result = await requestJson(`./api/conversations/${encodeURIComponent(conversationId)}/messages`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify(payload || {}),
+    });
+    return {
+      conversation: normalizeConversationSummary(result.conversation || {}),
+      message: normalizeConversationMessage(result.message || {}),
+    };
+  }
+
   function configuredMode() {
     const globalMode = root.ASKWELL_API_MODE || root.AskWellConfig?.apiMode;
     if (hostedModeValues.has(globalMode)) return globalMode;
@@ -320,6 +361,36 @@
     };
   }
 
+  function normalizeConversationSummary(conversation) {
+    return {
+      ...conversation,
+      workspaceId: conversation.workspaceId || conversation.workspace_id || "default",
+      customerId: conversation.customerId || conversation.customer_id || "anonymous",
+      lastMessageAt: conversation.lastMessageAt || conversation.last_message_at || "",
+      messageCount: conversation.messageCount ?? conversation.message_count ?? 0,
+      lastMessagePreview: conversation.lastMessagePreview || conversation.last_message_preview || "",
+      createdAt: conversation.createdAt || conversation.created_at || "",
+      updatedAt: conversation.updatedAt || conversation.updated_at || "",
+    };
+  }
+
+  function normalizeConversationMessage(message) {
+    return {
+      ...message,
+      workspaceId: message.workspaceId || message.workspace_id || "default",
+      conversationId: message.conversationId || message.conversation_id || "",
+      senderType: message.senderType || message.sender_type || message.sender || "customer",
+      createdAt: message.createdAt || message.created_at || "",
+    };
+  }
+
+  function normalizeConversationDetails(payload) {
+    return {
+      conversation: normalizeConversationSummary(payload.conversation || {}),
+      messages: Array.isArray(payload.messages) ? payload.messages.map(normalizeConversationMessage) : [],
+    };
+  }
+
   root.AskWellApi = {
     remoteApiAvailable,
     initializeConfig,
@@ -338,5 +409,9 @@
     listDocuments,
     getDiagnostics,
     deleteDocument,
+    createConversation,
+    listConversations,
+    getConversation,
+    addConversationMessage,
   };
 })(globalThis);

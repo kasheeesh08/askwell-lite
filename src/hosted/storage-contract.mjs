@@ -11,6 +11,8 @@ export const HOSTED_LIMITS = Object.freeze({
   maxVectorsPerIngest: 500,
   maxChunkTextLength: 7000,
   maxQuestionLength: 800,
+  maxConversationMessagesPerCreate: 20,
+  maxMessageContentLength: 4000,
   normTolerance: 0.05,
 });
 
@@ -304,6 +306,63 @@ export function validateDeleteDocumentRequest(payload, context) {
   };
 }
 
+export function validateConversationCreateRequest(payload, context, limits = HOSTED_LIMITS) {
+  const body = objectRecord(payload, "conversationCreate");
+  const workspaceId = validateWorkspaceContext(body.workspaceId, context);
+  const conversationId = body.id === undefined ? randomUUID() : validId(body.id, "conversation.id");
+  const messages = Array.isArray(body.messages)
+    ? body.messages
+    : body.initialMessage
+      ? [body.initialMessage]
+      : [];
+
+  if (messages.length > limits.maxConversationMessagesPerCreate) {
+    fail("conversation_message_limit_exceeded", "Too many messages in conversation create request", 413, {
+      limit: limits.maxConversationMessagesPerCreate,
+      received: messages.length,
+    });
+  }
+
+  return {
+    workspaceId,
+    id: conversationId,
+    customerId: safeOptionalString(body.customerId || body.visitorId || "anonymous", "customerId", {
+      min: 1,
+      max: 160,
+    }),
+    status: conversationStatus(body.status || "open"),
+    metadata: objectRecord(body.metadata || {}, "conversation.metadata"),
+    messages: messages.map((message, index) =>
+      validateConversationMessagePayload(message, {
+        workspaceId,
+        conversationId,
+        limits,
+        position: index,
+      }),
+    ),
+  };
+}
+
+export function validateConversationMessageRequest(payload, context, limits = HOSTED_LIMITS) {
+  const body = objectRecord(payload, "conversationMessage");
+  const workspaceId = validateWorkspaceContext(body.workspaceId, context);
+  const conversationId = validId(body.conversationId || context?.conversationId, "conversationId");
+  return validateConversationMessagePayload(body, {
+    workspaceId,
+    conversationId,
+    limits,
+  });
+}
+
+export function validateConversationLookupRequest(payload, context) {
+  const body = objectRecord(payload || {}, "conversationLookup");
+  const workspaceId = validateWorkspaceContext(body.workspaceId, context);
+  return {
+    workspaceId,
+    conversationId: validId(body.conversationId || context?.conversationId, "conversationId"),
+  };
+}
+
 export function validateCitations(citationChunkIds, retrievedChunks) {
   const allowed = new Set(arrayOf(retrievedChunks, "retrievedChunks").map((chunk) => chunk.chunkId || chunk.id));
   return arrayOf(citationChunkIds, "citationChunkIds").map((chunkId) => {
@@ -322,6 +381,8 @@ export function createMemoryHostedStore(options = {}) {
   const documents = new Map();
   const chunks = new Map();
   const embeddings = new Map();
+  const conversations = new Map();
+  const messages = new Map();
   const ingestionRuns = [];
 
   for (const workspace of options.workspaces || [{ id: "default", version: 1, settings: {} }]) {
@@ -336,6 +397,8 @@ export function createMemoryHostedStore(options = {}) {
     documents.set(id, new Map());
     chunks.set(id, new Map());
     embeddings.set(id, new Map());
+    conversations.set(id, new Map());
+    messages.set(id, new Map());
   }
 
   function requireWorkspace(workspaceId) {
@@ -535,6 +598,90 @@ export function createMemoryHostedStore(options = {}) {
       return { deleted: true, chunksDeleted };
     },
 
+    createConversation(payload, context) {
+      const request = validateConversationCreateRequest(payload, context, this.limits);
+      requireWorkspace(request.workspaceId);
+      for (const [otherWorkspaceId, workspaceConversations] of conversations.entries()) {
+        if (workspaceConversations.has(request.id) && otherWorkspaceId !== request.workspaceId) {
+          fail("cross_workspace_conversation_reference", "Conversation id belongs to another workspace", 409, {
+            workspaceId: request.workspaceId,
+            conversationId: request.id,
+            ownerWorkspaceId: otherWorkspaceId,
+          });
+        }
+      }
+      const workspaceConversations = conversations.get(request.workspaceId);
+      if (workspaceConversations.has(request.id)) {
+        fail("conversation_exists", "Conversation already exists", 409, {
+          conversationId: request.id,
+        });
+      }
+      const timestamp = now();
+      const conversation = {
+        id: request.id,
+        workspaceId: request.workspaceId,
+        status: request.status,
+        customerId: request.customerId,
+        metadata: request.metadata,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        lastMessageAt: request.messages.length ? timestamp : null,
+      };
+      const workspaceMessages = messages.get(request.workspaceId);
+      workspaceConversations.set(request.id, conversation);
+      workspaceMessages.set(request.id, request.messages.map((message, index) => ({
+        ...message,
+        id: message.id || randomUUID(),
+        position: index,
+        createdAt: timestamp,
+      })));
+      return conversationDetails(conversation, workspaceMessages.get(request.id));
+    },
+
+    listConversations(workspaceId = "default") {
+      requireWorkspace(workspaceId);
+      const workspaceMessages = messages.get(workspaceId);
+      return [...conversations.get(workspaceId).values()]
+        .map((conversation) => conversationSummary(conversation, workspaceMessages.get(conversation.id) || []))
+        .sort((left, right) => String(right.lastMessageAt || right.updatedAt).localeCompare(String(left.lastMessageAt || left.updatedAt)));
+    },
+
+    getConversation(workspaceId, conversationId) {
+      requireWorkspace(workspaceId);
+      const conversation = conversations.get(workspaceId).get(conversationId);
+      if (!conversation) return null;
+      return conversationDetails(conversation, messages.get(workspaceId).get(conversationId) || []);
+    },
+
+    addConversationMessage(payload, context) {
+      const request = validateConversationMessageRequest(payload, context, this.limits);
+      requireWorkspace(request.workspaceId);
+      const conversation = conversations.get(request.workspaceId).get(request.conversationId);
+      if (!conversation) {
+        fail("unknown_conversation", "Conversation is not available in hosted storage", 404, {
+          conversationId: request.conversationId,
+        });
+      }
+      const workspaceMessages = messages.get(request.workspaceId);
+      const conversationMessages = workspaceMessages.get(request.conversationId) || [];
+      const timestamp = now();
+      const message = {
+        ...request,
+        id: request.id || randomUUID(),
+        position: conversationMessages.length,
+        createdAt: timestamp,
+      };
+      conversationMessages.push(message);
+      workspaceMessages.set(request.conversationId, conversationMessages);
+      conversation.updatedAt = timestamp;
+      conversation.lastMessageAt = timestamp;
+      conversations.get(request.workspaceId).set(request.conversationId, conversation);
+      return {
+        conversation: conversationSummary(conversation, conversationMessages),
+        message: clone(message),
+      };
+    },
+
     getRetrievalSnapshot(workspaceId = "default") {
       requireWorkspace(workspaceId);
       return {
@@ -546,6 +693,77 @@ export function createMemoryHostedStore(options = {}) {
     ingestionRuns(workspaceId = "default") {
       return ingestionRuns.filter((run) => run.workspaceId === workspaceId).map(clone);
     },
+  };
+}
+
+function validateConversationMessagePayload(message, options) {
+  const body = objectRecord(message, "message");
+  if (body.workspaceId !== undefined && body.workspaceId !== options.workspaceId) {
+    fail("workspace_context_mismatch", "Message workspace does not match authorized workspace", 403, {
+      authorizedWorkspaceId: options.workspaceId,
+      requestedWorkspaceId: body.workspaceId,
+    });
+  }
+  if (body.conversationId !== undefined && body.conversationId !== options.conversationId) {
+    fail("cross_conversation_message_reference", "Message conversation does not match parent conversation", 409, {
+      expected: options.conversationId,
+      received: body.conversationId,
+    });
+  }
+  return {
+    id: body.id === undefined ? randomUUID() : validId(body.id, "message.id"),
+    workspaceId: options.workspaceId,
+    conversationId: options.conversationId,
+    senderType: senderType(body.senderType || body.sender || body.role),
+    content: stringValue(body.content || body.text, "message.content", {
+      min: 1,
+      max: options.limits.maxMessageContentLength,
+    }),
+    position: options.position,
+    metadata: objectRecord(body.metadata || {}, "message.metadata"),
+  };
+}
+
+function conversationStatus(value) {
+  const status = stringValue(value, "conversation.status", { min: 1, max: 40 });
+  if (!["open", "resolved"].includes(status)) {
+    fail("invalid_conversation_status", "Conversation status is not supported", 400, {
+      status,
+    });
+  }
+  return status;
+}
+
+function senderType(value) {
+  const type = stringValue(value, "message.senderType", { min: 1, max: 40 });
+  if (!["customer", "assistant", "agent"].includes(type)) {
+    fail("invalid_message_sender", "Message sender type is not supported", 400, {
+      senderType: type,
+    });
+  }
+  return type;
+}
+
+function safeOptionalString(value, field, limits) {
+  return stringValue(value || "anonymous", field, limits);
+}
+
+function conversationSummary(conversation, conversationMessages) {
+  const latest = conversationMessages.at(-1);
+  return clone({
+    ...conversation,
+    messageCount: conversationMessages.length,
+    lastMessagePreview: latest?.content?.slice(0, 160) || "",
+  });
+}
+
+function conversationDetails(conversation, conversationMessages) {
+  return {
+    conversation: conversationSummary(conversation, conversationMessages),
+    messages: conversationMessages
+      .slice()
+      .sort((left, right) => left.position - right.position || String(left.createdAt).localeCompare(String(right.createdAt)))
+      .map(clone),
   };
 }
 
