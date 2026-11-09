@@ -1275,6 +1275,46 @@ test("knowledge page offers private demo sign-in before hosted document requests
   assert.doesNotMatch(app.innerHTML, /askwell-admin-token/);
 });
 
+test("knowledge page recovers with private demo sign-in when auth-required status is already rendered", () => {
+  const persisted = {
+    tab: "knowledge",
+    settings: { brand: "AskWell", accent: "#ef7d62", welcome: "Hi" },
+    articles: [],
+    conversations: [],
+    messages: [],
+    documentStatus: {
+      state: "failed",
+      message: "Private demo session is required",
+      documents: [],
+      pendingIds: [],
+      selectedId: "",
+      diagnostics: null,
+      diagnosticsState: "failed",
+      diagnosticsMessage: "Private demo sign-in required.",
+    },
+  };
+  const { app, context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-lite-state": JSON.stringify(persisted) },
+    fetch: async () => ({
+      ok: false,
+      status: 401,
+      async json() {
+        return { error: "Private demo session is required", code: "missing_admin_auth" };
+      },
+    }),
+  });
+
+  context.setTab("knowledge");
+
+  assert.match(app.innerHTML, /Private demo session is required/);
+  assert.match(app.innerHTML, /Private demo sign-in/);
+  assert.match(app.innerHTML, /data-private-demo-login/);
+  assert.match(app.innerHTML, /name="accessCredential"/);
+  assert.equal(typeof context.loginPrivateDemo, "function");
+  assert.doesNotMatch(app.innerHTML, /ASKWELL_ADMIN_TOKEN/);
+});
+
 test("knowledge private demo sign-in creates session and retries hosted diagnostics", async () => {
   const calls = [];
   const { app, context } = createAppContext({

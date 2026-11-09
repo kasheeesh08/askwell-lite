@@ -16,6 +16,15 @@
     return Array.isArray(tags) ? tags.join(", ") : "";
   }
 
+  function needsPrivateDemoSession(status, runtimeConfig) {
+    if (runtimeConfig?.apiMode === "hosted") return !runtimeConfig.authenticated;
+    const messages = [
+      status?.message,
+      status?.diagnosticsMessage,
+    ].filter(Boolean).join(" ");
+    return /private demo|missing_admin_auth|session (is )?required|sign-in required/i.test(messages);
+  }
+
   function knowledgePage(ctx) {
     const { state, escapeHtml, icons, pageHeader, shell, tokenize, runtimeConfig } = ctx;
     const query = tokenize(state.search || "");
@@ -42,7 +51,7 @@
       : null;
     const updateTags = selectedArticle?.tags || selectedDocument?.metadata?.tags || [];
     const privateDemoSignIn =
-      runtimeConfig?.apiMode === "hosted" && !runtimeConfig.authenticated
+      needsPrivateDemoSession(status, runtimeConfig)
         ? `
           <form class="private-demo-form" data-private-demo-login>
             <div>
