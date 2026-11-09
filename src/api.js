@@ -75,7 +75,7 @@
   }
 
   async function loginHosted(accessCredential) {
-    const payload = await requestJson("./api/auth/login", {
+    await requestJson("./api/auth/login", {
       method: "POST",
       skipModeHeaders: true,
       skipCsrf: true,
@@ -85,10 +85,21 @@
       },
       body: JSON.stringify({ accessCredential }),
     });
-    runtimeConfig.authenticated = true;
-    runtimeConfig.csrfToken = payload.csrfToken || "";
-    runtimeConfig.sessionExpiresAt = payload.expiresAt || "";
-    return payload;
+    try {
+      return await refreshHostedSession();
+    } catch (error) {
+      clearHostedSessionState();
+      const confirmationError = new Error(
+        "Private demo login was accepted, but the secure browser session could not be confirmed.",
+      );
+      confirmationError.status = error.status || 401;
+      confirmationError.payload = {
+        code: "session_cookie_unconfirmed",
+        error: confirmationError.message,
+        cause: error.payload?.code || error.message || "session_unavailable",
+      };
+      throw confirmationError;
+    }
   }
 
   async function refreshHostedSession(options = {}) {
@@ -239,6 +250,7 @@
         code === "session_expired" ||
         code === "session_invalidated" ||
         code === "invalid_session" ||
+        code === "session_cookie_unconfirmed" ||
         code === "csrf_required" ||
         code === "csrf_origin_mismatch"
       )
@@ -250,6 +262,9 @@
     if (code === "session_expired") return "Private demo session expired. Sign in again.";
     if (code === "session_invalidated") return "Private demo session was signed out. Sign in again.";
     if (code === "invalid_session") return "Private demo session is invalid. Sign in again.";
+    if (code === "session_cookie_unconfirmed") {
+      return "Private demo login was accepted, but the secure session cookie was not confirmed. Refresh the page and try again over HTTPS.";
+    }
     if (code === "invalid_admin_auth") return "Private demo access credential is incorrect.";
     if (code === "csrf_required" || code === "csrf_origin_mismatch") {
       return "Private demo session could not be verified. Sign in again.";
