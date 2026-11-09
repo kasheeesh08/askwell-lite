@@ -22,25 +22,39 @@ const EVIDENCE_STOPWORDS = new Set([
   "a",
   "an",
   "and",
+  "about",
   "after",
   "before",
   "can",
+  "could",
   "do",
   "does",
+  "explain",
   "from",
+  "help",
   "how",
   "i",
   "if",
+  "instruction",
+  "instructions",
   "is",
   "it",
+  "me",
   "my",
+  "need",
   "of",
+  "on",
   "or",
+  "please",
   "should",
   "the",
   "to",
+  "understand",
+  "want",
   "what",
   "where",
+  "would",
+  "you",
 ]);
 const GENERIC_QUERY_TOKENS = new Set([
   "askwell",
@@ -70,6 +84,7 @@ const GENERIC_QUERY_TOKENS = new Set([
   "settings",
   "someone",
   "stay",
+  "support",
   "test",
   "testing",
   "when",
@@ -77,6 +92,7 @@ const GENERIC_QUERY_TOKENS = new Set([
 const AMBIGUOUS_REFERENCE_TOKENS = new Set(["it", "this", "that", "thing", "setting", "settings"]);
 const TEMPORAL_CONFLICT_TOKENS = new Set(["active", "current", "old", "outdated", "still"]);
 const TOKEN_EQUIVALENTS = new Map([
+  ["add", ["install", "copy", "paste"]],
   ["chat", ["conversation"]],
   ["chats", ["conversation", "conversations"]],
   ["conversation", ["chat", "chats"]],
@@ -445,7 +461,7 @@ function intersection(left, right) {
 function queryCoverage(question, chunks) {
   const query = contentTokens(question);
   if (!query.size) return 1;
-  const evidence = expandedContentTokens(chunks.map((chunk) => chunk.text).join(" "));
+  const evidence = expandedContentTokens(evidenceText(chunks));
   return [...query].filter((token) => tokenSupported(token, evidence)).length / query.size;
 }
 
@@ -467,9 +483,21 @@ function expandedContentTokens(value) {
   return tokens;
 }
 
+function evidenceText(chunks) {
+  return chunks
+    .map((chunk) =>
+      [
+        chunk.documentTitle,
+        chunk.text,
+        Array.isArray(chunk.metadata?.tags) ? chunk.metadata.tags.join(" ") : "",
+      ].filter(Boolean).join(" "),
+    )
+    .join(" ");
+}
+
 function supportAnalysis(question, chunks) {
   const queryTokens = contentTokens(question);
-  const evidenceTokens = expandedContentTokens(chunks.map((chunk) => chunk.text).join(" "));
+  const evidenceTokens = expandedContentTokens(evidenceText(chunks));
   const specificQueryTokens = [...queryTokens].filter((token) => !GENERIC_QUERY_TOKENS.has(token));
   const missingImportantTokens = specificQueryTokens.filter((token) => !tokenSupported(token, evidenceTokens));
   return {

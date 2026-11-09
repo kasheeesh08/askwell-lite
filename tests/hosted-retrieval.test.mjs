@@ -202,6 +202,52 @@ test("evidence sufficiency distinguishes support, ambiguity, missing evidence, a
   );
 });
 
+test("evidence sufficiency ignores conversational filler while preserving unsupported abstention", () => {
+  const install = {
+    chunkId: "install-widget:chunk-0",
+    documentId: "install-widget",
+    documentTitle: "Install the chat widget",
+    text: "Copy the widget script from the Install tab and paste it before the closing body tag on your website. The static starter uses local knowledge base answers.",
+    score: 0.04,
+    strategy: "hybrid",
+    metadata: { tags: ["setup", "widget"] },
+  };
+  const bm25 = [{ ...install, score: 3.6940987388980213, strategy: "bm25" }];
+  const semantic = [{ ...install, score: 0.553806163577732, strategy: "semantic" }];
+  const hybrid = [install];
+
+  for (const question of [
+    "I need help understanding how to install the AskWell support widget on my website.",
+    "Can you help me install the support widget?",
+    "How do I add the widget to my website?",
+    "I need instructions for installing the chat widget.",
+  ]) {
+    const answer = answerFromRetrieval({ question, bm25, semantic, hybrid });
+    assert.equal(answer.insufficientContext, false, question);
+    assert.deepEqual(answer.citations.map((citation) => citation.title), ["Install the chat widget"]);
+    assert.ok(answer.evidence.queryCoverage >= 0.45, question);
+    assert.deepEqual(answer.evidence.missingImportantTokens, [], question);
+  }
+
+  const unrelated = answerFromRetrieval({
+    question: "Can I connect Slack alerts to a private billing channel?",
+    bm25,
+    semantic,
+    hybrid,
+  });
+  assert.equal(unrelated.insufficientContext, true);
+  assert.equal(unrelated.fallbackReason, "missing_required_evidence");
+
+  const unsupportedSpecific = answerFromRetrieval({
+    question: "How do I install the Shopify plugin for the support widget?",
+    bm25,
+    semantic,
+    hybrid,
+  });
+  assert.equal(unsupportedSpecific.insufficientContext, true);
+  assert.equal(unsupportedSpecific.fallbackReason, "missing_required_evidence");
+});
+
 test("answer generation works for sufficient multi-chunk evidence and abstains when support is missing", () => {
   const exportChunk = {
     chunkId: "export:chunk-0",

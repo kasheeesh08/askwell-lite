@@ -2008,6 +2008,109 @@ test("hosted widget answers from indexed articles and abstains without evidence"
   assert.equal(context.localStorage.dump()["askwell-conversation-id"], "conversation-1");
 });
 
+test("hosted widget conversation persistence does not submit stale workspace saves", async () => {
+  const calls = [];
+  const workspace = {
+    version: 1,
+    settings: { brand: "Hosted", accent: "#ef7d62", welcome: "Hi" },
+    articles: [
+      {
+        id: "widget-install",
+        title: "Install the chat widget",
+        tags: ["setup"],
+        content: "Copy the widget script from the Install page and paste it before the closing body tag.",
+      },
+    ],
+    conversations: [],
+  };
+  const jsonResponse = (payload, ok = true, status = ok ? 200 : 500) => ({
+    ok,
+    status,
+    async json() {
+      return payload;
+    },
+  });
+  const { context } = createAppContext({
+    localStorage: {
+      "askwell-api-mode": "hosted",
+      "askwell-lite-state": JSON.stringify({ ...workspace, messages: [] }),
+    },
+    location: { protocol: "https:" },
+    setTimeout: (callback) => {
+      Promise.resolve().then(callback);
+      return 1;
+    },
+    clearTimeout: () => {},
+    fetch: async (url, options = {}) => {
+      const path = String(url);
+      const method = String(options.method || "GET").toUpperCase();
+      calls.push({ path, method, body: options.body });
+      if (path.includes("/api/config")) return jsonResponse({ apiMode: "hosted", hostedConfigured: true });
+      if (path.includes("/api/auth/session")) {
+        return jsonResponse({ authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" });
+      }
+      if (path.includes("/api/workspace") && method === "GET") return jsonResponse({ ...workspace, version: 2 });
+      if (path.includes("/api/workspace") && method === "PUT") {
+        return jsonResponse(
+          {
+            code: "workspace_version_conflict",
+            error: "Workspace version conflict",
+            expectedVersion: JSON.parse(options.body || "{}").expectedVersion,
+            latestVersion: 2,
+            workspace: { ...workspace, version: 2 },
+          },
+          false,
+          409,
+        );
+      }
+      if (path.includes("/api/ai/documents")) return jsonResponse({ documents: [] });
+      if (path.includes("/api/conversations/conversation-1/messages") && method === "POST") {
+        return jsonResponse({
+          conversation: { id: "conversation-1", workspaceId: "default", status: "open", messageCount: 2 },
+          message: { id: "message-2", conversationId: "conversation-1", senderType: "assistant", content: "Install answer" },
+        });
+      }
+      if (path.endsWith("/api/conversations") && method === "GET") return jsonResponse({ conversations: [] });
+      if (path.endsWith("/api/conversations") && method === "POST") {
+        return jsonResponse({
+          conversation: { id: "conversation-1", workspaceId: "default", status: "open", messageCount: 1 },
+          messages: [{ id: "message-1", conversationId: "conversation-1", senderType: "customer", content: "Question" }],
+        });
+      }
+      if (path.includes("/api/ai/answer")) {
+        return jsonResponse({
+          answer: "Copy the widget script from the Install page.",
+          sources: ["Install the chat widget"],
+          citations: [{ document_id: "widget-install", chunk_id: "widget-install:chunk-0", title: "Install the chat widget" }],
+          insufficient_context: false,
+          fallback_reason: null,
+        });
+      }
+      return jsonResponse({});
+    },
+  });
+  context.AskWellHostedEmbeddings.__setEmbedderForTests(async (text) => tokenHashVector384(text));
+
+  await flushAsyncWork();
+  const form = new FakeElement("chat-form");
+  const input = new FakeElement("input");
+  input.value = "How do I add the widget to my website?";
+  form.querySelector = () => input;
+
+  await context.askWidget({ preventDefault() {}, currentTarget: form });
+  await flushAsyncWork();
+
+  assert.equal(context.AskWellState.getSaveStatus().state, "saved");
+  assert.equal(
+    calls.some((call) => call.path.includes("/api/workspace") && call.method === "PUT"),
+    false,
+  );
+  assert.equal(
+    calls.filter((call) => call.path.includes("/api/conversations") && call.method === "POST").length,
+    2,
+  );
+});
+
 test("hosted widget reloads a returning visitor conversation with agent handoff messages", async () => {
   const calls = [];
   const localStorage = {

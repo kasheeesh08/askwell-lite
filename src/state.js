@@ -1409,7 +1409,11 @@
         if (state.tab === "inbox" && api.isHostedMode()) {
           await refreshInbox({ preserveMessage: true });
         }
-        saveState();
+        if (api.isHostedMode()) {
+          saveLocalState();
+        } else {
+          saveState();
+        }
         notify();
         return;
       } catch (error) {
@@ -1435,7 +1439,11 @@
         if (state.tab === "inbox" && api.isHostedMode()) {
           await refreshInbox({ preserveMessage: true });
         }
-        saveState();
+        if (api.isHostedMode()) {
+          saveLocalState();
+        } else {
+          saveState();
+        }
         notify();
         return;
       }
