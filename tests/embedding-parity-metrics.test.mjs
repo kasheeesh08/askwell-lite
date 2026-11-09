@@ -10,7 +10,7 @@ import {
   reciprocalRank,
   summarizeParity,
   topKAgreement,
-} from "../experiments/browser-embedding-parity/embedding-metrics.mjs";
+} from "./support/embedding-metrics.mjs";
 
 test("validates vector dimensions and finite values", () => {
   assert.doesNotThrow(() => assertVector([0.6, 0.8], 2));
