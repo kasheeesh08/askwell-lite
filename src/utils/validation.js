@@ -17,14 +17,33 @@
   }
 
   function normalizeMessage(message) {
+    const role = ["user", "bot", "customer", "assistant", "agent", "status"].includes(message.role)
+      ? message.role
+      : "bot";
     return {
-      role: message.role === "user" ? "user" : "bot",
+      ...message,
+      role,
       text: String(message.text || ""),
       sources: Array.isArray(message.sources) ? message.sources : undefined,
       citations: Array.isArray(message.citations) ? message.citations : undefined,
       generation: message.generation && typeof message.generation === "object" ? message.generation : undefined,
       fallbackReason: message.fallbackReason ? String(message.fallbackReason) : undefined,
       insufficientContext: Boolean(message.insufficientContext),
+      createdAt: message.createdAt ? String(message.createdAt) : undefined,
+    };
+  }
+
+  function normalizeChatStatus(input = {}, defaults = {}) {
+    const raw = input && typeof input === "object" ? input : defaults;
+    return {
+      ...defaults,
+      ...raw,
+      state: raw.state || defaults.state || "idle",
+      message: raw.message || defaults.message || "",
+      conversationId: raw.conversationId ? String(raw.conversationId) : "",
+      isSending: Boolean(raw.isSending),
+      error: raw.error ? String(raw.error) : "",
+      lastLoadedAt: raw.lastLoadedAt ? String(raw.lastLoadedAt) : "",
     };
   }
 
@@ -82,6 +101,7 @@
       messages: input.messages?.length
         ? input.messages.map(normalizeMessage)
         : defaults.messages,
+      chatStatus: normalizeChatStatus(input.chatStatus, defaults.chatStatus),
       documentStatus,
       inboxStatus: normalizeInboxStatus(input.inboxStatus, defaults.inboxStatus),
     };

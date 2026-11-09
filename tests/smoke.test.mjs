@@ -1593,6 +1593,7 @@ test("chat preview displays AI citations when the service responds", async () =>
 
 test("hosted widget answers from indexed articles and abstains without evidence", async () => {
   const store = createMemoryHostedStore();
+  const conversationMessages = [];
   let workspace = {
     version: 1,
     settings: { brand: "Hosted", accent: "#ef7d62", welcome: "Hi" },
@@ -1690,17 +1691,77 @@ test("hosted widget answers from indexed articles and abstains without evidence"
         });
         return jsonResponse(answerFromRetrieval({ question: body.question, ...retrieval }));
       }
-      if (path.includes("/api/conversations") && method === "POST") {
+      if (path.includes("/api/conversations/conversation-1/messages") && method === "POST") {
         const body = JSON.parse(options.body || "{}");
+        conversationMessages.push({
+          id: `message-${conversationMessages.length + 1}`,
+          conversationId: "conversation-1",
+          senderType: body.senderType,
+          content: body.content,
+          metadata: body.metadata || {},
+          position: conversationMessages.length,
+          createdAt: "2026-01-01T10:00:00.000Z",
+        });
+        return jsonResponse({
+          conversation: {
+            id: "conversation-1",
+            workspaceId: "default",
+            status: "open",
+            customerId: "visitor-1",
+            messageCount: conversationMessages.length,
+            lastMessagePreview: body.content,
+          },
+          message: conversationMessages.at(-1),
+        });
+      }
+      if (path.includes("/api/conversations/conversation-1") && method === "GET") {
+        return jsonResponse({
+          conversation: {
+            id: "conversation-1",
+            workspaceId: "default",
+            status: "open",
+            customerId: "visitor-1",
+            messageCount: conversationMessages.length,
+          },
+          messages: conversationMessages,
+        });
+      }
+      if (path.endsWith("/api/conversations") && method === "GET") {
+        return jsonResponse({
+          conversations: conversationMessages.length
+            ? [{
+                id: "conversation-1",
+                workspaceId: "default",
+                status: "open",
+                customerId: "visitor-1",
+                messageCount: conversationMessages.length,
+                lastMessagePreview: conversationMessages.at(-1)?.content || "",
+              }]
+            : [],
+        });
+      }
+      if (path.endsWith("/api/conversations") && method === "POST") {
+        const body = JSON.parse(options.body || "{}");
+        for (const message of body.messages || []) {
+          conversationMessages.push({
+            id: `message-${conversationMessages.length + 1}`,
+            conversationId: "conversation-1",
+            senderType: message.senderType,
+            content: message.content,
+            metadata: message.metadata || {},
+            position: conversationMessages.length,
+            createdAt: "2026-01-01T10:00:00.000Z",
+          });
+        }
         return jsonResponse({
           conversation: {
             id: "conversation-1",
             workspaceId: "default",
             status: body.status || "open",
             customerId: body.customerId || "anonymous",
-            messageCount: Array.isArray(body.messages) ? body.messages.length : 0,
+            messageCount: conversationMessages.length,
           },
-          messages: body.messages || [],
+          messages: conversationMessages,
         });
       }
       return jsonResponse({ error: "not found" }, false, 404);
@@ -1724,7 +1785,8 @@ test("hosted widget answers from indexed articles and abstains without evidence"
   assert.match(app.innerHTML, /14 day trial/);
   assert.match(app.innerHTML, /Citations:/);
   assert.match(app.innerHTML, /trial-policy:chunk-0/);
-  assert.equal(requests.some((request) => request.path.includes("/api/conversations") && request.method === "POST"), true);
+  assert.equal(requests.some((request) => request.path.endsWith("/api/conversations") && request.method === "POST"), true);
+  assert.equal(conversationMessages.map((message) => message.senderType).join(","), "customer,assistant");
 
   const fallbackForm = new FakeElement("chat-form");
   const fallbackInput = new FakeElement("input");
@@ -1738,6 +1800,244 @@ test("hosted widget answers from indexed articles and abstains without evidence"
   assert.equal(latest.citations.length, 0);
   assert.equal(latest.fallbackReason, "missing_required_evidence");
   assert.match(app.innerHTML, /I do not have enough information/);
+  assert.deepEqual(conversationMessages.map((message) => message.senderType), [
+    "customer",
+    "assistant",
+    "customer",
+    "assistant",
+  ]);
+  assert.equal(context.localStorage.dump()["askwell-admin-token"], undefined);
+  assert.ok(context.localStorage.dump()["askwell-visitor-id"]);
+  assert.equal(context.localStorage.dump()["askwell-conversation-id"], "conversation-1");
+});
+
+test("hosted widget reloads a returning visitor conversation with agent handoff messages", async () => {
+  const calls = [];
+  const localStorage = {
+    "askwell-api-mode": "hosted",
+    "askwell-visitor-id": "anonymous-returning",
+    "askwell-conversation-id": "conversation-returning",
+  };
+  const { app, context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage,
+    fetch: async (url) => {
+      const path = String(url);
+      calls.push(path);
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          if (path.includes("/api/config")) {
+            return { apiMode: "hosted", hostedConfigured: true };
+          }
+          if (path.includes("/api/auth/session")) {
+            return { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" };
+          }
+          if (path.includes("/api/workspace")) {
+            return { version: 1, settings: { brand: "Hosted" }, articles: [], conversations: [] };
+          }
+          if (path.includes("/api/ai/documents")) {
+            return { documents: [] };
+          }
+          if (path.includes("/api/conversations/conversation-returning")) {
+            return {
+              conversation: {
+                id: "conversation-returning",
+                workspaceId: "default",
+                customerId: "anonymous-returning",
+                status: "open",
+                messageCount: 3,
+              },
+              messages: [
+                { id: "m1", conversationId: "conversation-returning", senderType: "customer", content: "Do I need a card?", position: 0 },
+                { id: "m2", conversationId: "conversation-returning", senderType: "assistant", content: "No card is required.", position: 1 },
+                { id: "m3", conversationId: "conversation-returning", senderType: "agent", content: "A support agent also confirmed it.", position: 2 },
+              ],
+            };
+          }
+          if (path.endsWith("/api/conversations")) {
+            return { conversations: [] };
+          }
+          return {};
+        },
+      };
+    },
+  });
+
+  await flushAsyncWork();
+  await context.loadWidgetConversation();
+  await flushAsyncWork();
+
+  assert.match(app.innerHTML, /Do I need a card\?/);
+  assert.match(app.innerHTML, /No card is required\./);
+  assert.match(app.innerHTML, /Human agent/);
+  assert.match(app.innerHTML, /A support agent also confirmed it\./);
+  assert.match(app.innerHTML, /Thread conversation-returning/);
+  assert.ok(calls.some((path) => path.includes("/api/conversations/conversation-returning")));
+});
+
+test("hosted widget recovers from an invalid stored conversation id", async () => {
+  const calls = [];
+  const conversationMessages = [];
+  const { context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: {
+      "askwell-api-mode": "hosted",
+      "askwell-conversation-id": "missing-conversation",
+      "askwell-visitor-id": "anonymous-stable",
+    },
+    fetch: async (url, options = {}) => {
+      const path = String(url);
+      const method = String(options.method || "GET").toUpperCase();
+      calls.push({ path, method, body: options.body });
+      if (path.includes("/api/config")) {
+        return { ok: true, async json() { return { apiMode: "hosted", hostedConfigured: true }; } };
+      }
+      if (path.includes("/api/auth/session")) {
+        return { ok: true, async json() { return { authenticated: true, csrfToken: "csrf-token" }; } };
+      }
+      if (path.includes("/api/workspace")) {
+        return { ok: true, async json() { return { version: 1, settings: {}, articles: [], conversations: [] }; } };
+      }
+      if (path.includes("/api/conversations/missing-conversation/messages")) {
+        return {
+          ok: false,
+          status: 404,
+          async json() { return { code: "unknown_conversation", error: "Conversation is gone" }; },
+        };
+      }
+      if (path.endsWith("/api/conversations") && method === "POST") {
+        const body = JSON.parse(options.body || "{}");
+        conversationMessages.push(...(body.messages || []));
+        return {
+          ok: true,
+          async json() {
+            return {
+              conversation: {
+                id: "conversation-new",
+                workspaceId: "default",
+                status: "open",
+                customerId: body.customerId,
+                messageCount: conversationMessages.length,
+              },
+              messages: conversationMessages,
+            };
+          },
+        };
+      }
+      if (path.includes("/api/conversations/conversation-new/messages")) {
+        const body = JSON.parse(options.body || "{}");
+        conversationMessages.push(body);
+        return {
+          ok: true,
+          async json() {
+            return {
+              conversation: { id: "conversation-new", workspaceId: "default", status: "open", messageCount: conversationMessages.length },
+              message: body,
+            };
+          },
+        };
+      }
+      if (path.includes("/api/ai/answer")) {
+        return {
+          ok: true,
+          async json() {
+            return { answer: "Use the Install page.", sources: ["Install"], citations: [] };
+          },
+        };
+      }
+      if (path.includes("/api/ai/documents")) {
+        return { ok: true, async json() { return { documents: [] }; } };
+      }
+      return { ok: true, async json() { return {}; } };
+    },
+  });
+  context.AskWellHostedEmbeddings.__setEmbedderForTests(async (text) => tokenHashVector384(text));
+  await flushAsyncWork();
+
+  const form = new FakeElement("chat-form");
+  const input = new FakeElement("input");
+  input.value = "Where do I install the widget?";
+  form.querySelector = () => input;
+  await context.askWidget({ preventDefault() {}, currentTarget: form });
+
+  assert.ok(calls.some((call) => call.path.includes("/api/conversations/missing-conversation/messages")));
+  assert.ok(calls.some((call) => call.path.endsWith("/api/conversations") && call.method === "POST"));
+  assert.equal(context.localStorage.dump()["askwell-conversation-id"], "conversation-new");
+  assert.equal(conversationMessages[0].senderType, "customer");
+});
+
+test("hosted widget prevents duplicate submissions while a message is pending", async () => {
+  const calls = [];
+  let releaseAnswer;
+  const answerReady = new Promise((resolve) => {
+    releaseAnswer = resolve;
+  });
+  const { context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async (url, options = {}) => {
+      const path = String(url);
+      const method = String(options.method || "GET").toUpperCase();
+      calls.push({ path, method });
+      if (path.includes("/api/config")) {
+        return { ok: true, async json() { return { apiMode: "hosted", hostedConfigured: true }; } };
+      }
+      if (path.includes("/api/auth/session")) {
+        return { ok: true, async json() { return { authenticated: true, csrfToken: "csrf-token" }; } };
+      }
+      if (path.includes("/api/workspace")) {
+        return { ok: true, async json() { return { version: 1, settings: {}, articles: [], conversations: [] }; } };
+      }
+      if (path.endsWith("/api/conversations") && method === "POST") {
+        return {
+          ok: true,
+          async json() {
+            return { conversation: { id: "conversation-1", workspaceId: "default", status: "open", messageCount: 1 }, messages: [] };
+          },
+        };
+      }
+      if (path.includes("/api/conversations/conversation-1/messages")) {
+        return {
+          ok: true,
+          async json() {
+            return { conversation: { id: "conversation-1", workspaceId: "default", status: "open", messageCount: 2 }, message: {} };
+          },
+        };
+      }
+      if (path.includes("/api/ai/answer")) {
+        await answerReady;
+        return {
+          ok: true,
+          async json() {
+            return { answer: "The answer is saved.", sources: [], citations: [] };
+          },
+        };
+      }
+      if (path.includes("/api/ai/documents")) {
+        return { ok: true, async json() { return { documents: [] }; } };
+      }
+      return { ok: true, async json() { return {}; } };
+    },
+  });
+  context.AskWellHostedEmbeddings.__setEmbedderForTests(async (text) => tokenHashVector384(text));
+  await flushAsyncWork();
+
+  const form = new FakeElement("chat-form");
+  const input = new FakeElement("input");
+  input.value = "Can I submit twice?";
+  form.querySelector = () => input;
+  const first = context.askWidget({ preventDefault() {}, currentTarget: form });
+  input.value = "Can I submit twice again?";
+  await context.askWidget({ preventDefault() {}, currentTarget: form });
+  releaseAnswer();
+  await first;
+
+  const createCalls = calls.filter((call) => call.path.endsWith("/api/conversations") && call.method === "POST");
+  const answerCalls = calls.filter((call) => call.path.includes("/api/ai/answer"));
+  assert.equal(createCalls.length, 1);
+  assert.equal(answerCalls.length, 1);
 });
 
 test("chat preview falls back locally when AI service is unavailable", async () => {

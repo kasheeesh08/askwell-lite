@@ -29,11 +29,23 @@
 
   function preview() {
     const state = store.getState();
+    const chatStatus = state.chatStatus || {};
+    const sending = Boolean(chatStatus.isSending);
     const messages = state.messages
       .map(
-        (message) => `
-        <div class="message ${message.role === "user" ? "user" : "bot"}">
-          ${escapeHtml(message.text)}
+        (message) => {
+          const role = message.role === "user"
+            ? "user"
+            : message.role === "agent"
+              ? "agent"
+              : message.role === "status"
+                ? "status"
+                : "bot";
+          const label = role === "user" ? "You" : role === "agent" ? "Human agent" : role === "status" ? "Status" : "AskWell";
+          return `
+        <div class="message ${role}">
+          <span class="message-label">${label}</span>
+          <p>${escapeHtml(message.text)}</p>
           ${
             message.sources?.length
               ? `<div class="source-list">Sources: ${message.sources.map(escapeHtml).join(", ")}</div>`
@@ -57,9 +69,15 @@
               : ""
           }
         </div>
-      `,
+      `;
+        },
       )
       .join("");
+    const statusText = chatStatus.error || chatStatus.message || "Answers from your knowledge base";
+    const statusClass = chatStatus.error ? "failed" : chatStatus.state || "idle";
+    const conversationText = chatStatus.conversationId
+      ? `Thread ${chatStatus.conversationId}`
+      : "New conversation";
 
     return `
     <aside class="preview">
@@ -84,15 +102,21 @@
           <section class="chat-window" aria-label="Support chat preview">
             <header class="chat-header">
               <div class="chat-avatar">A</div>
-              <div>
+              <div class="chat-heading">
                 <p class="chat-title">${escapeHtml(state.settings.brand)} Support</p>
-                <p class="chat-status">Answers from your knowledge base</p>
+                <p class="chat-status ${escapeHtml(statusClass)}">${escapeHtml(statusText)}</p>
               </div>
+              <button class="chat-refresh" data-refresh-chat title="Refresh conversation" aria-label="Refresh conversation">
+                ${icons.reset}
+              </button>
             </header>
-            <div class="messages">${messages}</div>
+            <div class="chat-meta">${escapeHtml(conversationText)}</div>
+            <div class="messages" aria-live="polite">${messages}</div>
             <form class="chat-form" data-chat-form>
-              <input class="input" name="question" placeholder="Ask about setup or billing" />
-              <button class="send-button" title="Send" aria-label="Send">-&gt;</button>
+              <input class="input" name="question" placeholder="Ask about setup or billing" ${sending ? "disabled" : ""} />
+              <button class="send-button" title="Send" aria-label="Send" ${sending ? "disabled" : ""}>
+                ${sending ? "..." : "-&gt;"}
+              </button>
             </form>
           </section>
         </div>
@@ -188,6 +212,7 @@
       ?.addEventListener("submit", store.addArticle);
 
     root.document.querySelector("[data-chat-form]")?.addEventListener("submit", store.askWidget);
+    root.document.querySelector("[data-refresh-chat]")?.addEventListener("click", () => store.loadWidgetConversation());
     root.document.querySelector("[data-search]")?.addEventListener("input", store.setSearch);
     root.document.querySelector("[data-settings-form]")?.addEventListener("submit", store.saveSettings);
     root.document.querySelector("[data-private-demo-login]")?.addEventListener("submit", store.loginPrivateDemo);
@@ -294,4 +319,5 @@
   root.runAgentAudit = () => store.runAgentAudit(pages.qualityGates);
   root.exportWorkspace = store.exportWorkspace;
   root.askWidget = store.askWidget;
+  root.loadWidgetConversation = store.loadWidgetConversation;
 })(globalThis);

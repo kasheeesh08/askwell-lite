@@ -57,6 +57,8 @@ function createHarnessServer() {
     articles: [],
     conversations: [],
   };
+  const conversations = new Map();
+  const messages = new Map();
   const events = [];
 
   const server = createServer(async (req, res) => {
@@ -64,7 +66,7 @@ function createHarnessServer() {
       const url = new URL(req.url || "/", "http://127.0.0.1");
       events.push({ method: req.method, path: url.pathname });
       if (url.pathname.startsWith("/api/")) {
-        await handleApi(req, res, url, { store, events, get workspace() { return workspace; }, set workspace(value) { workspace = value; }, get authenticated() { return authenticated; }, set authenticated(value) { authenticated = value; } });
+        await handleApi(req, res, url, { store, events, conversations, messages, get workspace() { return workspace; }, set workspace(value) { workspace = value; }, get authenticated() { return authenticated; }, set authenticated(value) { authenticated = value; } });
         return;
       }
       await serveStatic(req, res, url);
@@ -194,6 +196,91 @@ async function handleApi(req, res, url, harness) {
     return;
   }
 
+  if (url.pathname === "/api/conversations" && req.method === "GET") {
+    sendJson(res, { conversations: [...harness.conversations.values()] });
+    return;
+  }
+
+  if (url.pathname === "/api/conversations" && req.method === "POST") {
+    const body = await readJson(req);
+    const id = body.id || `conversation-${harness.conversations.size + 1}`;
+    const initialMessages = Array.isArray(body.messages) ? body.messages : [];
+    const now = new Date().toISOString();
+    const storedMessages = initialMessages.map((message, index) => ({
+      id: message.id || `${id}-message-${index + 1}`,
+      workspaceId: WORKSPACE_ID,
+      conversationId: id,
+      position: index,
+      senderType: message.senderType || "customer",
+      content: message.content || "",
+      metadata: message.metadata || {},
+      createdAt: now,
+    }));
+    harness.messages.set(id, storedMessages);
+    const conversation = {
+      id,
+      workspaceId: WORKSPACE_ID,
+      status: body.status || "open",
+      customerId: body.customerId || "anonymous",
+      metadata: body.metadata || {},
+      messageCount: storedMessages.length,
+      lastMessagePreview: storedMessages.at(-1)?.content || "",
+      createdAt: now,
+      updatedAt: now,
+      lastMessageAt: storedMessages.length ? now : "",
+    };
+    harness.conversations.set(id, conversation);
+    sendJson(res, { conversation, messages: storedMessages });
+    return;
+  }
+
+  const conversationMessage = url.pathname.match(/^\/api\/conversations\/([^/]+)\/messages$/);
+  if (conversationMessage && req.method === "POST") {
+    const id = decodeURIComponent(conversationMessage[1]);
+    const conversation = harness.conversations.get(id);
+    if (!conversation) {
+      sendJson(res, { error: "Conversation is not available in hosted storage", code: "unknown_conversation" }, 404);
+      return;
+    }
+    const body = await readJson(req);
+    const storedMessages = harness.messages.get(id) || [];
+    const now = new Date().toISOString();
+    const message = {
+      id: body.id || `${id}-message-${storedMessages.length + 1}`,
+      workspaceId: WORKSPACE_ID,
+      conversationId: id,
+      position: storedMessages.length,
+      senderType: body.senderType || "customer",
+      content: body.content || "",
+      metadata: body.metadata || {},
+      createdAt: now,
+    };
+    storedMessages.push(message);
+    harness.messages.set(id, storedMessages);
+    const updated = {
+      ...conversation,
+      messageCount: storedMessages.length,
+      lastMessagePreview: message.content,
+      updatedAt: now,
+      lastMessageAt: now,
+    };
+    harness.conversations.set(id, updated);
+    sendJson(res, { conversation: updated, message });
+    return;
+  }
+
+  const conversationDetail = url.pathname.match(/^\/api\/conversations\/([^/]+)$/);
+  if (conversationDetail && req.method === "GET") {
+    const id = decodeURIComponent(conversationDetail[1]);
+    const conversation = harness.conversations.get(id);
+    if (!conversation) {
+      sendJson(res, { error: "Conversation is not available in hosted storage", code: "unknown_conversation" }, 404);
+      return;
+    }
+    sendJson(res, { conversation, messages: harness.messages.get(id) || [] });
+    return;
+  }
+
   const documentDelete = url.pathname.match(/^\/api\/ai\/documents\/([^/]+)$/);
   if (documentDelete && req.method === "DELETE") {
     sendJson(
@@ -300,12 +387,43 @@ async function runBrowserFlow(client, baseUrl, browserPath, harness) {
   await waitFor(client, "document.body.innerText.includes('1 indexed')");
   await evaluate(client, "document.querySelector('[data-refresh-diagnostics]').click()");
   await waitFor(client, "document.body.innerText.includes('phase5c-local-browser-harness') && document.body.innerText.includes('1 indexed')");
+  await delay(700);
 
   await askWidget(client, "How long is the trial?");
   await waitFor(client, "document.body.innerText.includes('14 day trial') && document.body.innerText.includes('Citations:')");
 
   await askWidget(client, "Does AskWell support SAML SSO?");
   await waitFor(client, "document.body.innerText.includes('I do not have enough information')");
+
+  await evaluate(client, `
+    (async () => {
+      const conversationId = localStorage.getItem("askwell-conversation-id");
+      const response = await fetch("./api/conversations/" + encodeURIComponent(conversationId) + "/messages", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "content-type": "application/json",
+          "x-askwell-runtime": "hosted",
+          "x-askwell-csrf-token": window.AskWellApi.runtimeConfig.csrfToken
+        },
+        body: JSON.stringify({
+          senderType: "agent",
+          content: "A human support agent can follow up in this same thread.",
+          metadata: { source: "browser-harness" }
+        })
+      });
+      if (!response.ok) {
+        throw new Error("Agent message injection failed: " + response.status);
+      }
+      await window.loadWidgetConversation();
+    })()
+  `);
+  const handoffMarkup = await evaluate(client, "document.body.innerHTML");
+  if (!handoffMarkup.includes("Human agent") || !handoffMarkup.includes("same thread")) {
+    const handoffMessages = await evaluate(client, "window.AskWellState.getState().messages", { returnByValue: true });
+    throw new Error(`Agent handoff did not render: ${JSON.stringify(handoffMessages)}`);
+  }
+  await delay(700);
 
   await evaluate(client, "window.confirm = () => true; document.querySelector('[data-delete-document]').click()");
   await waitFor(client, "document.body.innerText.includes('Deleted Phase 5C trial policy')");
@@ -341,6 +459,8 @@ async function runBrowserFlow(client, baseUrl, browserPath, harness) {
       answerRendered: harness.events.some((event) => event.path === "/api/ai/answer"),
       citationRenderedBeforeDelete: true,
       insufficientEvidenceFallbackRendered: pageText.includes("I do not have enough information"),
+      conversationContinuityPersisted: harness.events.some((event) => event.path.includes("/api/conversations/") && event.path.endsWith("/messages")),
+      agentMessageRendered: handoffMarkup.includes("Human agent") && handoffMarkup.includes("same thread"),
       deletionCompleted: finalDiagnostics.documentCount === 0 && finalDiagnostics.chunkCount === 0 && finalDiagnostics.embeddingCount === 0,
     },
     finalDiagnostics,

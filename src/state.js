@@ -2,6 +2,7 @@
   const STORAGE_KEY = "askwell-lite-state";
   const ADMIN_TOKEN_KEY = "askwell-admin-token";
   const VISITOR_ID_KEY = "askwell-visitor-id";
+  const CONVERSATION_ID_KEY = "askwell-conversation-id";
   const { clone, makeId } = root.AskWellUtils;
   const { normalizeState, articleFromForm, documentUpdateFromForm, isValidArticle } = root.AskWellValidation;
   const { answerQuestion } = root.AskWellRetrieval;
@@ -68,6 +69,14 @@
         text: "Hi, I am AskWell. Ask me about trials, billing, setup, or AI upgrades.",
       },
     ],
+    chatStatus: {
+      state: "idle",
+      message: "Ready",
+      conversationId: "",
+      isSending: false,
+      error: "",
+      lastLoadedAt: "",
+    },
     documentStatus: {
       state: "idle",
       message: "Knowledge index ready",
@@ -94,6 +103,7 @@
   let state = loadState();
   let remoteSaveTimer;
   let diagnosticsRefreshPromise = null;
+  let widgetConversationRefreshPromise = null;
   let saveStatus = {
     state: api.remoteApiAvailable() ? "idle" : "local",
     message: api.remoteApiAvailable() ? "Ready" : "Local fallback",
@@ -196,6 +206,25 @@
     notify();
   }
 
+  function setChatStatus(update) {
+    const current = state.chatStatus || defaultState.chatStatus;
+    const next = {
+      ...current,
+      ...update,
+    };
+    next.conversationId = next.conversationId ? String(next.conversationId) : "";
+    next.state = next.state || "idle";
+    next.message = next.message || "";
+    next.error = next.error || "";
+    next.isSending = Boolean(next.isSending);
+    state = {
+      ...state,
+      chatStatus: next,
+    };
+    saveLocalState();
+    notify();
+  }
+
   function isConversationPending(id) {
     const pendingIds = state.inboxStatus?.pendingIds;
     return Array.isArray(pendingIds) && pendingIds.includes(id);
@@ -269,6 +298,7 @@
       saveLocalState();
       notify();
       await refreshDocuments();
+      await loadWidgetConversation({ silent: true });
     } catch (error) {
       if (api.isHostedMode() && hostedAuthRequired(error)) {
         const message = hostedAuthMessage(error);
@@ -1013,7 +1043,223 @@
     return answerQuestion(question, state.articles);
   }
 
-  function pushConversation(question, result, status = "open") {
+  function appendChatMessage(message) {
+    state = {
+      ...state,
+      messages: [
+        ...state.messages,
+        message,
+      ].slice(-20),
+    };
+    saveLocalState();
+    notify();
+  }
+
+  function replaceLastThinkingMessage(message) {
+    const messages = state.messages.slice();
+    const last = messages.at(-1);
+    if (last?.role === "status" && last.text === "Thinking...") {
+      messages[messages.length - 1] = message;
+    } else {
+      messages.push(message);
+    }
+    state = {
+      ...state,
+      messages: messages.slice(-20),
+    };
+    saveLocalState();
+    notify();
+  }
+
+  function removeThinkingMessage() {
+    state = {
+      ...state,
+      messages: state.messages.filter((message) => !(message.role === "status" && message.text === "Thinking...")),
+    };
+    saveLocalState();
+    notify();
+  }
+
+  function chatMessageFromConversationMessage(message) {
+    const senderType = message.senderType || message.sender_type || "assistant";
+    const metadata = message.metadata && typeof message.metadata === "object" ? message.metadata : {};
+    return {
+      role: senderType === "customer" ? "user" : senderType === "agent" ? "agent" : "bot",
+      text: message.content || message.text || "",
+      sources: Array.isArray(metadata.sources) ? metadata.sources : undefined,
+      citations: Array.isArray(metadata.citations) ? metadata.citations : undefined,
+      generation: metadata.generation && typeof metadata.generation === "object" ? metadata.generation : undefined,
+      fallbackReason: metadata.fallbackReason || undefined,
+      insufficientContext: Boolean(metadata.insufficientContext),
+      createdAt: message.createdAt || message.created_at || "",
+    };
+  }
+
+  function chatMessageFromAnswer(result) {
+    return {
+      role: "bot",
+      text: result.answer,
+      sources: result.sources || [],
+      citations: result.citations || [],
+      generation: result.generation || null,
+      fallbackReason: result.fallbackReason || null,
+      insufficientContext: Boolean(result.insufficientContext),
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  function unknownConversation(error) {
+    return error?.status === 404 && error?.payload?.code === "unknown_conversation";
+  }
+
+  async function loadWidgetConversation(options = {}) {
+    if (!api.remoteApiAvailable() || !api.isHostedMode()) return null;
+    if (widgetConversationRefreshPromise) return widgetConversationRefreshPromise;
+    widgetConversationRefreshPromise = (async () => {
+      if (!options.silent) {
+        setChatStatus({ state: "loading", message: "Loading conversation", error: "" });
+      }
+      const visitorId = getVisitorId();
+      let conversationId = root.localStorage.getItem(CONVERSATION_ID_KEY) || "";
+      try {
+        let details = null;
+        if (conversationId) {
+          try {
+            details = await api.getConversation(conversationId);
+          } catch (error) {
+            if (!unknownConversation(error)) throw error;
+            root.localStorage.removeItem(CONVERSATION_ID_KEY);
+            conversationId = "";
+          }
+        }
+
+        if (!details) {
+          const conversations = await api.listConversations();
+          const existing = conversations.find(
+            (conversation) => conversation.customerId === visitorId && conversation.status !== "resolved",
+          );
+          if (existing?.id) {
+            conversationId = existing.id;
+            details = await api.getConversation(existing.id);
+          }
+        }
+
+        if (!details?.conversation?.id) {
+          setChatStatus({
+            state: "idle",
+            message: "Start a new conversation",
+            conversationId: "",
+            error: "",
+            lastLoadedAt: new Date().toISOString(),
+          });
+          return null;
+        }
+
+        const messages = Array.isArray(details.messages)
+          ? details.messages.map(chatMessageFromConversationMessage)
+          : [];
+        state = {
+          ...state,
+          messages: messages.length ? messages : state.messages,
+        };
+        root.localStorage.setItem(CONVERSATION_ID_KEY, details.conversation.id);
+        setChatStatus({
+          state: "saved",
+          message: details.conversation.status === "resolved"
+            ? "Previous conversation loaded"
+            : "Conversation loaded",
+          conversationId: details.conversation.status === "resolved" ? "" : details.conversation.id,
+          error: "",
+          lastLoadedAt: new Date().toISOString(),
+        });
+        if (details.conversation.status === "resolved") {
+          root.localStorage.removeItem(CONVERSATION_ID_KEY);
+        }
+        return details.conversation.status === "resolved" ? null : details.conversation.id;
+      } catch (error) {
+        const message = hostedAuthRequired(error)
+          ? hostedAuthMessage(error)
+          : error.payload?.error || error.message || "Could not load conversation";
+        setChatStatus({
+          state: "failed",
+          message,
+          error: message,
+        });
+        return null;
+      } finally {
+        widgetConversationRefreshPromise = null;
+      }
+    })();
+    return widgetConversationRefreshPromise;
+  }
+
+  async function appendHostedMessage(conversationId, senderType, content, metadata = {}) {
+    return api.addConversationMessage(conversationId, {
+      senderType,
+      content,
+      metadata,
+    });
+  }
+
+  async function ensureHostedConversation(question) {
+    let conversationId = state.chatStatus?.conversationId || root.localStorage.getItem(CONVERSATION_ID_KEY) || "";
+    if (conversationId) {
+      try {
+        await appendHostedMessage(conversationId, "customer", question, { source: "widget" });
+        return conversationId;
+      } catch (error) {
+        if (!unknownConversation(error)) throw error;
+        root.localStorage.removeItem(CONVERSATION_ID_KEY);
+        conversationId = "";
+      }
+    }
+
+    const created = await api.createConversation({
+      customerId: getVisitorId(),
+      status: "open",
+      metadata: { source: "widget" },
+      messages: [
+        {
+          senderType: "customer",
+          content: question,
+          metadata: { source: "widget" },
+        },
+      ],
+    });
+    const id = created.conversation.id;
+    root.localStorage.setItem(CONVERSATION_ID_KEY, id);
+    setChatStatus({
+      state: "saved",
+      message: "Conversation started",
+      conversationId: id,
+      error: "",
+    });
+    return id;
+  }
+
+  async function persistHostedAssistantMessage(conversationId, result) {
+    if (!conversationId) return { ok: true };
+    try {
+      await appendHostedMessage(conversationId, "assistant", result.answer, {
+        sources: result.sources || [],
+        citations: result.citations || [],
+        generation: result.generation || null,
+        fallbackReason: result.fallbackReason || null,
+        insufficientContext: Boolean(result.insufficientContext),
+      });
+      return { ok: true };
+    } catch (error) {
+      const message = error.payload?.error || error.message || "Conversation persistence failed";
+      saveStatus = {
+        state: "failed",
+        message,
+      };
+      notify();
+      return { ok: false, message };
+    }
+  }
+
+  function pushConversation(question, result, status = "open", appendAnswerMessage = true) {
     const conversation = {
       id: makeId(),
       status,
@@ -1027,18 +1273,12 @@
     };
     state = {
       ...state,
-      messages: [
-        ...state.messages,
-        {
-          role: "bot",
-          text: result.answer,
-          sources: result.sources,
-          citations: result.citations || [],
-          generation: result.generation || null,
-          fallbackReason: result.fallbackReason || null,
-          insufficientContext: Boolean(result.insufficientContext),
-        },
-      ].slice(-10),
+      messages: appendAnswerMessage
+        ? [
+            ...state.messages,
+            chatMessageFromAnswer(result),
+          ].slice(-20)
+        : state.messages,
       conversations: [
         conversation,
         ...state.conversations,
@@ -1047,47 +1287,9 @@
     return conversation;
   }
 
-  async function persistHostedConversation(question, result, status = "open") {
-    if (!api.remoteApiAvailable() || !api.isHostedMode()) return;
-    try {
-      await api.createConversation({
-        customerId: getVisitorId(),
-        status,
-        metadata: {
-          source: "widget",
-          fallbackReason: result.fallbackReason || null,
-          insufficientContext: Boolean(result.insufficientContext),
-          citations: result.citations || [],
-        },
-        messages: [
-          {
-            senderType: "customer",
-            content: question,
-            metadata: { source: "widget" },
-          },
-          {
-            senderType: "assistant",
-            content: result.answer,
-            metadata: {
-              sources: result.sources || [],
-              citations: result.citations || [],
-              generation: result.generation || null,
-              fallbackReason: result.fallbackReason || null,
-              insufficientContext: Boolean(result.insufficientContext),
-            },
-          },
-        ],
-      });
-    } catch (error) {
-      saveStatus = {
-        state: "failed",
-        message: error.payload?.error || error.message || "Conversation persistence failed",
-      };
-    }
-  }
-
   function resetDemo() {
     state = normalizeState(clone(defaultState), defaultState);
+    root.localStorage.removeItem(CONVERSATION_ID_KEY);
     saveState();
     notify();
   }
@@ -1148,31 +1350,30 @@
 
   async function askWidget(event) {
     event.preventDefault();
-    const input = event.currentTarget.querySelector("input");
+    if (state.chatStatus?.isSending) return;
+    const formElement = event.currentTarget;
+    const input = formElement?.querySelector?.("input");
+    if (!input) {
+      setChatStatus({
+        state: "failed",
+        message: "Chat composer is unavailable",
+        error: "Chat composer is unavailable",
+      });
+      return;
+    }
     const question = input.value.trim();
     if (!question) return;
 
-    state = {
-      ...state,
-      messages: [
-        ...state.messages,
-        { role: "user", text: question },
-      ].slice(-10),
-    };
+    appendChatMessage({ role: "user", text: question, createdAt: new Date().toISOString() });
     input.value = "";
 
     if (api.remoteApiAvailable()) {
-      state = {
-        ...state,
-        messages: [...state.messages, { role: "bot", text: "Thinking..." }].slice(-10),
-      };
-      notify();
+      setChatStatus({ state: "sending", message: "Sending", isSending: true, error: "" });
+      appendChatMessage({ role: "status", text: "Thinking...", createdAt: new Date().toISOString() });
+      let conversationId = "";
       try {
+        conversationId = api.isHostedMode() ? await ensureHostedConversation(question) : "";
         const aiResult = await api.answerWithAi(question, 5);
-        state = {
-          ...state,
-          messages: state.messages.slice(0, -1),
-        };
         const result = {
           answer: aiResult.answer,
           sources: aiResult.sources || [],
@@ -1181,8 +1382,22 @@
           fallbackReason: aiResult.fallback_reason || null,
           insufficientContext: aiResult.insufficient_context,
         };
-        pushConversation(question, result);
-        await persistHostedConversation(question, result);
+        replaceLastThinkingMessage(chatMessageFromAnswer(result));
+        if (api.isHostedMode()) {
+          const persisted = await persistHostedAssistantMessage(conversationId, result);
+          setChatStatus({
+            state: persisted.ok ? "saved" : "failed",
+            message: persisted.ok
+              ? result.insufficientContext ? "No supported answer found" : "Answer saved"
+              : "Answer shown; conversation save failed",
+            isSending: false,
+            conversationId,
+            error: persisted.ok ? "" : persisted.message,
+          });
+        } else {
+          pushConversation(question, result, "open", false);
+          setChatStatus({ state: "saved", message: "Answer saved", isSending: false, error: "" });
+        }
         if (state.tab === "inbox" && api.isHostedMode()) {
           await refreshInbox({ preserveMessage: true });
         }
@@ -1190,17 +1405,25 @@
         notify();
         return;
       } catch (error) {
-        state = {
-          ...state,
-          messages: state.messages.slice(0, -1),
-        };
+        removeThinkingMessage();
         const result = {
           ...localAnswer(question),
           sources: [`AI generation unavailable - local fallback (${error.message || "unknown error"})`],
           fallbackReason: "ai_generation_error",
         };
-        pushConversation(question, result);
-        await persistHostedConversation(question, result);
+        replaceLastThinkingMessage(chatMessageFromAnswer(result));
+        if (api.isHostedMode() && conversationId) {
+          await persistHostedAssistantMessage(conversationId, result);
+        } else {
+          pushConversation(question, result, "open", false);
+        }
+        setChatStatus({
+          state: "failed",
+          message: "AI unavailable; showed local fallback",
+          isSending: false,
+          error: error.payload?.error || error.message || "AI unavailable",
+          conversationId,
+        });
         if (state.tab === "inbox" && api.isHostedMode()) {
           await refreshInbox({ preserveMessage: true });
         }
@@ -1212,6 +1435,7 @@
 
     const result = localAnswer(question);
     pushConversation(question, result);
+    setChatStatus({ state: "saved", message: "Answered locally", isSending: false, error: "" });
     saveState();
     notify();
   }
@@ -1220,6 +1444,7 @@
     STORAGE_KEY,
     ADMIN_TOKEN_KEY,
     VISITOR_ID_KEY,
+    CONVERSATION_ID_KEY,
     defaultSettings,
     defaultState,
     normalize,
@@ -1233,6 +1458,7 @@
     refreshDiagnostics,
     selectDocument,
     refreshInbox,
+    loadWidgetConversation,
     selectInboxConversation,
     setInboxFilter,
     sendAgentReply,

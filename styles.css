@@ -1147,6 +1147,11 @@ button {
   color: #fff;
 }
 
+.chat-heading {
+  min-width: 0;
+  flex: 1;
+}
+
 .chat-avatar {
   display: grid;
   width: 34px;
@@ -1168,6 +1173,42 @@ button {
   margin: 2px 0 0;
   color: rgba(255, 255, 255, 0.75);
   font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-status.failed {
+  color: #ffd4ca;
+}
+
+.chat-refresh {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.chat-refresh svg {
+  width: 16px;
+  height: 16px;
+}
+
+.chat-meta {
+  padding: 7px 14px;
+  border-bottom: 1px solid #e2dad1;
+  background: #fff8ec;
+  color: #6a6258;
+  font-size: 11px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .messages {
@@ -1187,6 +1228,19 @@ button {
   line-height: 1.42;
 }
 
+.message p {
+  margin: 3px 0 0;
+}
+
+.message-label {
+  display: block;
+  color: #6a6258;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
 .message.bot {
   align-self: flex-start;
   background: #fff;
@@ -1197,6 +1251,26 @@ button {
   align-self: flex-end;
   background: var(--mint-dark);
   color: #fff;
+}
+
+.message.user .message-label {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.message.agent {
+  align-self: flex-start;
+  border: 1px solid #111;
+  background: #fff7d6;
+  box-shadow: 3px 3px 0 #111;
+}
+
+.message.status {
+  align-self: center;
+  max-width: 94%;
+  border: 1px dashed #d8cfc3;
+  background: #fffbf5;
+  color: #6a6258;
+  text-align: center;
 }
 
 .source-list {
@@ -1227,6 +1301,12 @@ button {
   background: var(--coral);
   color: #111;
   font-weight: 900;
+}
+
+.send-button:disabled,
+.chat-form .input:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .empty {
