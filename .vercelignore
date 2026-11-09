@@ -1,0 +1,53 @@
+# Local Git and editor metadata
+.git/
+.github/
+.agents/
+.codex/
+.aws/
+.DS_Store
+Thumbs.db
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+
+# Runtime dependencies are installed by Vercel from package-lock.json
+node_modules/
+
+# Local-only runtime entry points and maintenance scripts
+server.mjs
+scripts/
+
+# Local server data, databases, journals, and exports
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# Python AI service is local-only. Hosted mode uses browser embeddings and
+# Vercel Node API routes, so this must not be packaged as a Python function.
+ai-service/
+
+# Local tests, fixtures, experiments, and caches
+tests/
+experiments/
+.pytest_cache/
+.tmp-ai-tests/
+.tmp-ai-real-tests/
+.tmp-ai-rehearsal/
+.tmp-askwell-*/
+.tmp-askwell-parity/
+.tmp-pytest/
+coverage/
+*.log
+
+# Documentation is kept in the repository, but not needed at runtime on Vercel
+docs/
