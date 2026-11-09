@@ -15,6 +15,8 @@ import {
   sanitizeWorkspace,
   writeWorkspace,
 } from "../server.mjs";
+import { createMemoryHostedStore } from "../src/hosted/storage-contract.mjs";
+import { answerFromRetrieval, retrieveWithPrefilter } from "../src/hosted/retrieval.mjs";
 
 const frontendSources = [
   "src/utils/escape.js",
@@ -254,6 +256,21 @@ async function flushAsyncWork() {
   for (let index = 0; index < 8; index += 1) {
     await Promise.resolve();
   }
+}
+
+function tokenHashVector384(text) {
+  const vector = Array.from({ length: 384 }, () => 0);
+  const tokens = String(text || "").toLowerCase().match(/[a-z0-9]+/g) || [];
+  for (const token of tokens) {
+    let hash = 2166136261;
+    for (let index = 0; index < token.length; index += 1) {
+      hash ^= token.charCodeAt(index);
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+    vector[hash % vector.length] += 1;
+  }
+  const norm = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0)) || 1;
+  return vector.map((value) => value / norm);
 }
 
 async function withServer(env, callback) {
@@ -1572,6 +1589,141 @@ test("chat preview displays AI citations when the service responds", async () =>
   assert.match(app.innerHTML, /Trials last 14 days/);
   assert.match(app.innerHTML, /Citations:/);
   assert.match(app.innerHTML, /trial:chunk-0/);
+});
+
+test("hosted widget answers from indexed articles and abstains without evidence", async () => {
+  const store = createMemoryHostedStore();
+  let workspace = {
+    version: 1,
+    settings: { brand: "Hosted", accent: "#ef7d62", welcome: "Hi" },
+    articles: [
+      {
+        id: "trial-policy",
+        title: "Trial policy",
+        tags: ["billing"],
+        content: "AskWell offers a 14 day trial. A payment card is not required during the trial.",
+      },
+      {
+        id: "widget-install",
+        title: "Widget install",
+        tags: ["setup"],
+        content: "Copy the widget script from the Install page and paste it before the closing body tag.",
+      },
+    ],
+    conversations: [],
+  };
+  const requests = [];
+  const jsonResponse = (payload, ok = true, status = ok ? 200 : 500) => ({
+    ok,
+    status,
+    async json() {
+      return payload;
+    },
+  });
+  const retrievalSnapshotFor = (chunkIds) => {
+    const snapshot = store.getRetrievalSnapshot("default");
+    const allowed = new Set(chunkIds);
+    return {
+      chunks: snapshot.chunks.filter((chunk) => allowed.has(chunk.id || chunk.chunkId)),
+      embeddings: snapshot.embeddings.filter((embedding) => allowed.has(embedding.chunkId)),
+    };
+  };
+
+  const { app, context } = createAppContext({
+    localStorage: {
+      "askwell-api-mode": "hosted",
+      "askwell-lite-state": JSON.stringify({ ...workspace, tab: "knowledge", messages: [] }),
+    },
+    location: { protocol: "https:" },
+    fetch: async (url, options = {}) => {
+      const path = String(url);
+      const method = String(options.method || "GET").toUpperCase();
+      requests.push({ path, method, body: options.body });
+      if (path.includes("/api/config")) {
+        return jsonResponse({ apiMode: "hosted", hostedConfigured: true });
+      }
+      if (path.includes("/api/auth/session")) {
+        return jsonResponse({
+          authenticated: true,
+          csrfToken: "csrf-token",
+          expiresAt: "2099-01-01T00:00:00.000Z",
+        });
+      }
+      if (path.includes("/api/workspace") && method === "GET") {
+        return jsonResponse({ ...workspace });
+      }
+      if (path.includes("/api/workspace") && method === "PUT") {
+        const body = JSON.parse(options.body || "{}");
+        workspace = { ...body, version: workspace.version + 1 };
+        return jsonResponse({ ...workspace });
+      }
+      if (path.includes("/api/ai/ingest")) {
+        return jsonResponse(store.ingest(JSON.parse(options.body || "{}"), { workspaceId: "default" }));
+      }
+      if (path.includes("/api/ai/documents")) {
+        return jsonResponse({ documents: store.listDocuments("default") });
+      }
+      if (path.includes("/api/ai/diagnostics")) {
+        const documents = store.listDocuments("default");
+        const snapshot = store.getRetrievalSnapshot("default");
+        return jsonResponse({
+          diagnostics: {
+            status: "healthy",
+            backend: "hosted",
+            integrity_check: "not-available",
+            document_count: documents.length,
+            chunk_count: snapshot.chunks.length,
+            embedding_count: snapshot.embeddings.length,
+            documents,
+          },
+        });
+      }
+      if (path.includes("/api/ai/answer")) {
+        const body = JSON.parse(options.body || "{}");
+        const snapshot = store.getRetrievalSnapshot("default");
+        const retrieval = retrieveWithPrefilter({
+          question: body.question,
+          queryVector: body.queryVector,
+          chunkIndex: snapshot.chunks,
+          vectorSnapshotForChunkIds: retrievalSnapshotFor,
+          topK: body.topK || 5,
+        });
+        return jsonResponse(answerFromRetrieval({ question: body.question, ...retrieval }));
+      }
+      return jsonResponse({ error: "not found" }, false, 404);
+    },
+  });
+  context.AskWellHostedEmbeddings.__setEmbedderForTests(async (text) => tokenHashVector384(text));
+
+  await flushAsyncWork();
+  await context.indexAllArticles();
+  await flushAsyncWork();
+
+  assert.match(app.innerHTML, /2 indexed/);
+  assert.equal(requests.some((request) => request.path.includes("/api/ai/ingest")), true);
+
+  const answerForm = new FakeElement("chat-form");
+  const answerInput = new FakeElement("input");
+  answerInput.value = "How long is the trial?";
+  answerForm.querySelector = () => answerInput;
+  await context.askWidget({ preventDefault() {}, currentTarget: answerForm });
+
+  assert.match(app.innerHTML, /14 day trial/);
+  assert.match(app.innerHTML, /Citations:/);
+  assert.match(app.innerHTML, /trial-policy:chunk-0/);
+
+  const fallbackForm = new FakeElement("chat-form");
+  const fallbackInput = new FakeElement("input");
+  fallbackInput.value = "Does AskWell support SAML SSO?";
+  fallbackForm.querySelector = () => fallbackInput;
+  await context.askWidget({ preventDefault() {}, currentTarget: fallbackForm });
+
+  const messages = context.AskWellState.getState().messages;
+  const latest = messages[messages.length - 1];
+  assert.equal(latest.insufficientContext, true);
+  assert.equal(latest.citations.length, 0);
+  assert.equal(latest.fallbackReason, "missing_required_evidence");
+  assert.match(app.innerHTML, /I do not have enough information/);
 });
 
 test("chat preview falls back locally when AI service is unavailable", async () => {

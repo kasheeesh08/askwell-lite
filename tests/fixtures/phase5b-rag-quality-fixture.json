@@ -1,0 +1,165 @@
+{
+  "name": "phase-5b-hosted-rag-quality",
+  "customer_data": false,
+  "description": "Synthetic support corpus for validating the hosted AskWell Lite RAG workflow without touching production data.",
+  "articles": [
+    {
+      "id": "trial-policy",
+      "title": "Trial policy",
+      "tags": ["billing", "trial"],
+      "content": "AskWell offers a 14 day trial. A payment card is not required during the trial. Trial workspaces include one admin seat, the hosted support widget, and up to 100 demo conversations."
+    },
+    {
+      "id": "widget-install",
+      "title": "Install the hosted widget",
+      "tags": ["setup", "widget"],
+      "content": "To install the customer support widget, copy the script from the Install page and paste it before the closing body tag on your website. Hosted mode answers from indexed knowledge documents and returns citations."
+    },
+    {
+      "id": "billing-plans",
+      "title": "Plan limits",
+      "tags": ["billing", "plans"],
+      "content": "The Free plan includes one workspace, one admin, and 100 conversations. The Growth plan includes five seats, 1000 conversations, and custom widget branding."
+    },
+    {
+      "id": "cancel-export",
+      "title": "Cancel and export",
+      "tags": ["billing", "export"],
+      "content": "Workspace owners can export conversations from the Inbox before cancelling. To cancel, open billing settings, choose Cancel plan, and confirm the change."
+    },
+    {
+      "id": "password-recovery",
+      "title": "Password recovery",
+      "tags": ["account", "security"],
+      "content": "If an admin forgets their password, use the password reset link on the sign-in page. The reset email expires after 30 minutes."
+    },
+    {
+      "id": "data-retention",
+      "title": "Data retention",
+      "tags": ["privacy", "data"],
+      "content": "Deleted documents are removed from the index with their chunks and embeddings. Exported workspace JSON files are created locally by the browser and are not uploaded by AskWell Lite."
+    },
+    {
+      "id": "invoice-tax",
+      "title": "Invoices and tax details",
+      "tags": ["billing", "tax"],
+      "content": "Invoices are available from billing settings. Team admins can add tax details and billing email recipients before downloading an invoice."
+    },
+    {
+      "id": "support-escalation",
+      "title": "Escalation policy",
+      "tags": ["support", "sla"],
+      "content": "Urgent billing incidents should be escalated through the support inbox. A human support owner should respond within one business day."
+    }
+  ],
+  "questions": [
+    {
+      "id": "q01-trial-length",
+      "type": "direct",
+      "question": "How long is the trial?",
+      "expected_abstain": false,
+      "expected_relevant_documents": ["trial-policy"],
+      "expected_source_chunks": ["trial-policy:chunk-0"],
+      "expected_answer_contains": ["14 day trial", "14 days"]
+    },
+    {
+      "id": "q02-trial-card-paraphrase",
+      "type": "paraphrase",
+      "question": "Do I have to enter a payment card before testing AskWell?",
+      "expected_abstain": false,
+      "expected_relevant_documents": ["trial-policy"],
+      "expected_source_chunks": ["trial-policy:chunk-0"],
+      "expected_answer_contains": ["payment card is not required", "card is not required"]
+    },
+    {
+      "id": "q03-widget-install",
+      "type": "direct",
+      "question": "Where do I paste the widget script?",
+      "expected_abstain": false,
+      "expected_relevant_documents": ["widget-install"],
+      "expected_source_chunks": ["widget-install:chunk-0"],
+      "expected_answer_contains": ["before the closing body tag"]
+    },
+    {
+      "id": "q04-plan-limits",
+      "type": "direct",
+      "question": "How many conversations are included on the Growth plan?",
+      "expected_abstain": false,
+      "expected_relevant_documents": ["billing-plans"],
+      "expected_source_chunks": ["billing-plans:chunk-0"],
+      "expected_answer_contains": ["1000 conversations"]
+    },
+    {
+      "id": "q05-cancel-and-export",
+      "type": "multi-source",
+      "question": "Can I export conversations before I cancel?",
+      "expected_abstain": false,
+      "expected_relevant_documents": ["cancel-export"],
+      "expected_source_chunks": ["cancel-export:chunk-0"],
+      "expected_answer_contains": ["export conversations", "before cancelling"]
+    },
+    {
+      "id": "q06-delete-documents",
+      "type": "direct",
+      "question": "What happens to chunks and embeddings when I delete a document?",
+      "expected_abstain": false,
+      "expected_relevant_documents": ["data-retention"],
+      "expected_source_chunks": ["data-retention:chunk-0"],
+      "expected_answer_contains": ["chunks and embeddings", "removed from the index"]
+    },
+    {
+      "id": "q07-password-reset",
+      "type": "synonym",
+      "question": "How long does the reset email stay valid?",
+      "expected_abstain": false,
+      "expected_relevant_documents": ["password-recovery"],
+      "expected_source_chunks": ["password-recovery:chunk-0"],
+      "expected_answer_contains": ["30 minutes"]
+    },
+    {
+      "id": "q08-invoice-tax",
+      "type": "direct",
+      "question": "Where can admins add tax details?",
+      "expected_abstain": false,
+      "expected_relevant_documents": ["invoice-tax"],
+      "expected_source_chunks": ["invoice-tax:chunk-0"],
+      "expected_answer_contains": ["billing settings", "tax details"]
+    },
+    {
+      "id": "q09-urgent-billing",
+      "type": "direct",
+      "question": "Where should urgent billing incidents be escalated?",
+      "expected_abstain": false,
+      "expected_relevant_documents": ["support-escalation"],
+      "expected_source_chunks": ["support-escalation:chunk-0"],
+      "expected_answer_contains": ["support inbox", "one business day"]
+    },
+    {
+      "id": "q10-sso",
+      "type": "unanswerable",
+      "question": "Does AskWell Lite support SAML SSO?",
+      "expected_abstain": true,
+      "expected_relevant_documents": [],
+      "expected_source_chunks": [],
+      "expected_answer_contains": []
+    },
+    {
+      "id": "q11-ambiguous-setting",
+      "type": "ambiguous",
+      "question": "Where is the setting?",
+      "expected_abstain": true,
+      "expected_relevant_documents": [],
+      "expected_source_chunks": [],
+      "expected_answer_contains": []
+    },
+    {
+      "id": "q12-partial-phone",
+      "type": "partial-insufficient",
+      "question": "Can the widget answer phone calls?",
+      "expected_abstain": true,
+      "expected_relevant_documents": [],
+      "expected_source_chunks": [],
+      "expected_answer_contains": []
+    }
+  ]
+}

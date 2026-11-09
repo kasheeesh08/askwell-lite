@@ -53,6 +53,7 @@ const GENERIC_QUERY_TOKENS = new Set([
   "for",
   "data",
   "handle",
+  "happen",
   "include",
   "included",
   "includ",
@@ -68,8 +69,10 @@ const GENERIC_QUERY_TOKENS = new Set([
   "setting",
   "settings",
   "someone",
+  "stay",
   "test",
   "testing",
+  "when",
 ]);
 const AMBIGUOUS_REFERENCE_TOKENS = new Set(["it", "this", "that", "thing", "setting", "settings"]);
 const TEMPORAL_CONFLICT_TOKENS = new Set(["active", "current", "old", "outdated", "still"]);
@@ -79,13 +82,20 @@ const TOKEN_EQUIVALENTS = new Map([
   ["conversation", ["chat", "chats"]],
   ["conversations", ["chat", "chats"]],
   ["credit", ["payment", "card"]],
+  ["delet", ["delete", "deleted", "remove", "removed"]],
+  ["delete", ["delet", "deleted", "remove", "removed"]],
+  ["deleted", ["delet", "delete", "remove", "removed"]],
+  ["email", ["mail", "recipient", "recipients"]],
+  ["expires", ["expire", "valid"]],
   ["arriv", ["arrive", "arrives"]],
   ["fast", ["within", "second", "seconds"]],
   ["includ", ["include", "included", "includes"]],
+  ["long", ["day", "days", "minute", "minutes", "hour", "hours"]],
   ["mailbox", ["inbox"]],
   ["respond", ["response", "return", "within", "second", "seconds"]],
   ["subscription", ["plan"]],
   ["swap", ["replace"]],
+  ["valid", ["expire", "expires"]],
 ]);
 
 export function tokenize(value) {
