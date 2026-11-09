@@ -1,25 +1,11 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
 
-import configRoute from "../api/config.mjs";
-import loginRoute from "../api/auth/login.mjs";
-import logoutRoute from "../api/auth/logout.mjs";
-import sessionRoute from "../api/auth/session.mjs";
-import workspaceRoute from "../api/workspace.mjs";
-import healthRoute from "../api/ai/health.mjs";
-import diagnosticsRoute from "../api/ai/diagnostics.mjs";
-import ingestRoute from "../api/ai/ingest.mjs";
-import answerRoute from "../api/ai/answer.mjs";
-import documentsRoute from "../api/ai/documents/index.mjs";
-import deleteDocumentRoute from "../api/ai/documents/[id].mjs";
-import conversationsRoute from "../api/conversations/index.mjs";
-import conversationRoute from "../api/conversations/[id].mjs";
-import conversationMessagesRoute from "../api/conversations/[id]/messages.mjs";
-import conversationStatusRoute from "../api/conversations/[id]/status/index.mjs";
+import hostedApiRoute from "../api/[...path].mjs";
 import { createHostedRoute } from "../src/hosted/vercel-route.mjs";
 import { createHostedSession, resetHostedSessionRevocationsForTests } from "../src/hosted/session.mjs";
 import {
@@ -29,6 +15,21 @@ import {
 } from "../src/hosted/storage-contract.mjs";
 
 const adminToken = "test-admin-token";
+const configRoute = hostedApiRoute;
+const loginRoute = hostedApiRoute;
+const logoutRoute = hostedApiRoute;
+const sessionRoute = hostedApiRoute;
+const workspaceRoute = hostedApiRoute;
+const healthRoute = hostedApiRoute;
+const diagnosticsRoute = hostedApiRoute;
+const ingestRoute = hostedApiRoute;
+const answerRoute = hostedApiRoute;
+const documentsRoute = hostedApiRoute;
+const deleteDocumentRoute = hostedApiRoute;
+const conversationsRoute = hostedApiRoute;
+const conversationRoute = hostedApiRoute;
+const conversationMessagesRoute = hostedApiRoute;
+const conversationStatusRoute = hostedApiRoute;
 
 function vector(first = 1, second = 0) {
   const values = Array.from({ length: SUPPORTED_EMBEDDING_PROFILE.dimension }, () => 0);
@@ -206,28 +207,25 @@ test("vercel deployment config keeps local runtimes out of hosted functions", as
 test("frontend hosted API URLs have matching Vercel route files", async () => {
   const apiClient = await readFile("src/api.js", "utf8");
   const frontendRoutes = [
-    ["./api/config", "api/config.mjs"],
-    ["./api/auth/login", "api/auth/login.mjs"],
-    ["./api/auth/session", "api/auth/session.mjs"],
-    ["./api/auth/logout", "api/auth/logout.mjs"],
-    ["./api/workspace", "api/workspace.mjs"],
-    ["./api/ai/diagnostics", "api/ai/diagnostics.mjs"],
-    ["./api/ai/documents", "api/ai/documents/index.mjs"],
-    ["./api/ai/ingest", "api/ai/ingest.mjs"],
-    ["./api/ai/answer", "api/ai/answer.mjs"],
-    ["./api/ai/documents/", "api/ai/documents/[id].mjs"],
-    ["./api/conversations", "api/conversations/index.mjs"],
-    ["/messages", "api/conversations/[id]/messages.mjs"],
-    ["/status", "api/conversations/[id]/status/index.mjs"],
+    "./api/config",
+    "./api/auth/login",
+    "./api/auth/session",
+    "./api/auth/logout",
+    "./api/workspace",
+    "./api/ai/diagnostics",
+    "./api/ai/documents",
+    "./api/ai/ingest",
+    "./api/ai/answer",
+    "./api/ai/documents/",
+    "./api/conversations",
+    "/messages",
+    "/status",
   ];
-  const additionalHostedRoutes = ["api/ai/health.mjs"];
+  await access("api/[...path].mjs");
+  assert.deepEqual(await listApiModules("api"), ["api/[...path].mjs"]);
 
-  for (const [frontendUrl, routeFile] of frontendRoutes) {
+  for (const frontendUrl of frontendRoutes) {
     assert.match(apiClient, new RegExp(frontendUrl.replace(/[./]/g, "\\$&")));
-    await access(routeFile);
-  }
-  for (const routeFile of additionalHostedRoutes) {
-    await access(routeFile);
   }
 });
 
@@ -472,7 +470,7 @@ test("hosted cookie-authenticated writes reject missing CSRF tokens", async () =
   });
 });
 
-test("vercel route files cover workspace, health, diagnostics, ingest, answer, docs, conversations, and deletion", async () => {
+test("consolidated vercel route covers workspace, health, diagnostics, ingest, answer, docs, conversations, and deletion", async () => {
   await withHostedEnv(async () => {
     const auth = (await loginSession()).headers;
 
@@ -673,6 +671,14 @@ test("vercel route files cover workspace, health, diagnostics, ingest, answer, d
   });
 });
 
+test("consolidated vercel route returns 404 for unknown API paths", async () => {
+  await withHostedEnv(async () => {
+    const result = await call(hostedApiRoute, request({ url: "/api/unknown" }));
+    assert.equal(result.status, 404);
+    assert.equal(result.body.code, "not_found");
+  });
+});
+
 test("vercel routes reject wrong methods, unauthorized writes, bad profiles, oversized requests, and missing config", async () => {
   await withHostedEnv(async () => {
     assert.equal(
@@ -739,3 +745,14 @@ test("vercel routes reject wrong methods, unauthorized writes, bad profiles, ove
     restore(previous);
   }
 });
+
+async function listApiModules(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const modules = [];
+  for (const entry of entries) {
+    const child = `${directory}/${entry.name}`;
+    if (entry.isDirectory()) modules.push(...(await listApiModules(child)));
+    else if (entry.isFile() && child.endsWith(".mjs")) modules.push(child.replaceAll("\\", "/"));
+  }
+  return modules.sort();
+}
