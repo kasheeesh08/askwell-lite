@@ -108,6 +108,16 @@
     return root.localStorage.getItem(ADMIN_TOKEN_KEY);
   }
 
+  function hostedAuthRequired(error) {
+    return typeof api.isHostedAuthError === "function" && api.isHostedAuthError(error);
+  }
+
+  function hostedAuthMessage(error) {
+    return typeof api.hostedAuthMessage === "function"
+      ? api.hostedAuthMessage(error)
+      : error?.payload?.error || error?.message || "Private demo sign-in required.";
+  }
+
   function setDocumentStatus(update) {
     const current = state.documentStatus || defaultState.documentStatus;
     const next = {
@@ -186,8 +196,19 @@
       saveLocalState();
       notify();
       refreshDocuments();
-    } catch {
-      saveStatus = { state: "local", message: "Local fallback" };
+    } catch (error) {
+      if (api.isHostedMode() && hostedAuthRequired(error)) {
+        const message = hostedAuthMessage(error);
+        saveStatus = { state: "failed", message };
+        setDocumentStatus({
+          state: "failed",
+          message,
+          diagnosticsState: "failed",
+          diagnosticsMessage: message,
+        });
+        return;
+      }
+      saveStatus = { state: api.isHostedMode() ? "failed" : "local", message: api.isHostedMode() ? "Hosted sync unavailable" : "Local fallback" };
       notify();
     }
   }
@@ -224,6 +245,14 @@
         if (syncIndex) ingestArticles(state.articles);
       } catch (error) {
         const payload = error.payload || {};
+        if (api.isHostedMode() && hostedAuthRequired(error)) {
+          saveStatus = {
+            state: "failed",
+            message: hostedAuthMessage(error),
+          };
+          notify();
+          return;
+        }
         if (error.status === 409) {
           if (payload.workspace) {
             state = normalizeState({ ...state, ...payload.workspace, tab: state.tab }, defaultState);
@@ -298,7 +327,9 @@
       candidates.forEach((article) => setDocumentPending(article.id, false));
       setDocumentStatus({
         state: "failed",
-        message: error.payload?.error || error.message || "Indexing failed",
+        message: hostedAuthRequired(error)
+          ? hostedAuthMessage(error)
+          : error.payload?.error || error.message || "Indexing failed",
       });
     }
   }
@@ -322,7 +353,9 @@
     } catch (error) {
       setDocumentStatus({
         state: "failed",
-        message: error.payload?.error || error.message || "Could not load index metadata",
+        message: hostedAuthRequired(error)
+          ? hostedAuthMessage(error)
+          : error.payload?.error || error.message || "Could not load index metadata",
       });
     }
   }
@@ -347,7 +380,9 @@
     } catch (error) {
       setDocumentStatus({
         diagnosticsState: "failed",
-        diagnosticsMessage: error.payload?.error || error.message || "Diagnostics unavailable",
+        diagnosticsMessage: hostedAuthRequired(error)
+          ? hostedAuthMessage(error)
+          : error.payload?.error || error.message || "Diagnostics unavailable",
       });
     }
   }
@@ -467,7 +502,9 @@
       setDocumentStatus({
         selectedId: update.id,
         state: "failed",
-        message: error.payload?.error || error.message || "Re-index failed",
+        message: hostedAuthRequired(error)
+          ? hostedAuthMessage(error)
+          : error.payload?.error || error.message || "Re-index failed",
       });
     }
   }
@@ -491,7 +528,9 @@
         setDocumentPending(id, false);
         setDocumentStatus({
           state: "failed",
-          message: error.payload?.error || error.message || "Delete failed",
+          message: hostedAuthRequired(error)
+            ? hostedAuthMessage(error)
+            : error.payload?.error || error.message || "Delete failed",
         });
         return;
       }
@@ -565,6 +604,52 @@
     saveState();
     notify();
     hydrateFromRemote();
+  }
+
+  async function loginPrivateDemo(event) {
+    event.preventDefault();
+    const form = new root.FormData(event.currentTarget);
+    const accessCredential = form.get("accessCredential")?.trim();
+    if (!accessCredential) {
+      setDocumentStatus({
+        state: "failed",
+        message: "Private demo access credential is required",
+        diagnosticsState: "failed",
+        diagnosticsMessage: "Private demo access credential is required",
+      });
+      return;
+    }
+
+    saveStatus = { state: "saving", message: "Signing in" };
+    setDocumentStatus({
+      state: "loading",
+      message: "Starting private demo session",
+      diagnosticsState: "loading",
+      diagnosticsMessage: "Starting private demo session",
+    });
+    try {
+      await api.loginHosted(accessCredential);
+      root.localStorage.removeItem(ADMIN_TOKEN_KEY);
+      event.currentTarget.reset();
+      saveStatus = { state: "saved", message: "Private demo session active" };
+      setDocumentStatus({
+        state: "saved",
+        message: "Private demo session active",
+        diagnosticsState: "idle",
+        diagnosticsMessage: "Session active; checking storage",
+      });
+      await hydrateFromRemote();
+      await refreshDiagnostics();
+    } catch (error) {
+      const message = hostedAuthMessage(error);
+      saveStatus = { state: "failed", message };
+      setDocumentStatus({
+        state: "failed",
+        message,
+        diagnosticsState: "failed",
+        diagnosticsMessage: message,
+      });
+    }
   }
 
   function localAnswer(question) {
@@ -746,6 +831,7 @@
     setSearch,
     toggleConversation,
     saveSettings,
+    loginPrivateDemo,
     resetDemo,
     runAgentAudit,
     exportWorkspace,

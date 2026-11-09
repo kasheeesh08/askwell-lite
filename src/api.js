@@ -58,6 +58,7 @@
       const error = new Error(payload.error || `Request failed (${response.status})`);
       error.status = response.status;
       error.payload = payload;
+      if (isHostedAuthError(error)) clearHostedSessionState();
       throw error;
     }
 
@@ -101,9 +102,7 @@
       runtimeConfig.csrfToken = payload.csrfToken || "";
       runtimeConfig.sessionExpiresAt = payload.expiresAt || "";
     } catch (error) {
-      runtimeConfig.authenticated = false;
-      runtimeConfig.csrfToken = "";
-      runtimeConfig.sessionExpiresAt = "";
+      clearHostedSessionState();
       if (!options.optional) throw error;
     }
     return runtimeConfig;
@@ -121,9 +120,7 @@
         body: JSON.stringify({}),
       });
     } finally {
-      runtimeConfig.authenticated = false;
-      runtimeConfig.csrfToken = "";
-      runtimeConfig.sessionExpiresAt = "";
+      clearHostedSessionState();
     }
   }
 
@@ -225,6 +222,42 @@
     return root.AskWellHostedEmbeddings;
   }
 
+  function clearHostedSessionState() {
+    runtimeConfig.authenticated = false;
+    runtimeConfig.csrfToken = "";
+    runtimeConfig.sessionExpiresAt = "";
+  }
+
+  function isHostedAuthError(error) {
+    const code = error?.payload?.code;
+    return (
+      isHostedMode() &&
+      (error?.status === 401 || error?.status === 403) &&
+      (
+        code === "missing_admin_auth" ||
+        code === "invalid_admin_auth" ||
+        code === "session_expired" ||
+        code === "session_invalidated" ||
+        code === "invalid_session" ||
+        code === "csrf_required" ||
+        code === "csrf_origin_mismatch"
+      )
+    );
+  }
+
+  function hostedAuthMessage(error) {
+    const code = error?.payload?.code;
+    if (code === "session_expired") return "Private demo session expired. Sign in again.";
+    if (code === "session_invalidated") return "Private demo session was signed out. Sign in again.";
+    if (code === "invalid_session") return "Private demo session is invalid. Sign in again.";
+    if (code === "invalid_admin_auth") return "Private demo access credential is incorrect.";
+    if (code === "csrf_required" || code === "csrf_origin_mismatch") {
+      return "Private demo session could not be verified. Sign in again.";
+    }
+    if (code === "missing_admin_auth") return "Private demo sign-in required.";
+    return error?.payload?.error || error?.message || "Private demo authentication failed.";
+  }
+
   function normalizeIngestResponse(payload) {
     return {
       ...payload,
@@ -279,6 +312,8 @@
     loginHosted,
     refreshHostedSession,
     logoutHosted,
+    isHostedAuthError,
+    hostedAuthMessage,
     loadWorkspace,
     saveWorkspace,
     answerWithAi,

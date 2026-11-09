@@ -1248,6 +1248,132 @@ test("hosted widget settings exchange access credential for a session without lo
   assert.equal(calls.some((call) => call.options.headers?.["x-askwell-admin-token"] === "secret-token"), false);
 });
 
+test("knowledge page offers private demo sign-in before hosted document requests are authorized", () => {
+  const { app, context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async (url) => ({
+      ok: String(url).includes("/api/config"),
+      status: String(url).includes("/api/config") ? 200 : 401,
+      async json() {
+        if (String(url).includes("/api/config")) {
+          return { apiMode: "hosted", hostedConfigured: true };
+        }
+        return {
+          error: "Private demo session is required",
+          code: "missing_admin_auth",
+          details: {},
+        };
+      },
+    }),
+  });
+
+  context.setTab("knowledge");
+
+  assert.match(app.innerHTML, /Private demo sign-in/);
+  assert.match(app.innerHTML, /Access credential/);
+  assert.doesNotMatch(app.innerHTML, /askwell-admin-token/);
+});
+
+test("knowledge private demo sign-in creates session and retries hosted diagnostics", async () => {
+  const calls = [];
+  const { app, context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-api-mode": "hosted", "askwell-admin-token": "old-local-token" },
+    fetch: async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      return {
+        ok: !String(url).includes("/api/auth/session"),
+        status: String(url).includes("/api/auth/session") ? 401 : 200,
+        async json() {
+          if (String(url).includes("/api/config")) {
+            return { apiMode: "hosted", hostedConfigured: true };
+          }
+          if (String(url).includes("/api/auth/session")) {
+            return { error: "Private demo session is required", code: "missing_admin_auth" };
+          }
+          if (String(url).includes("/api/auth/login")) {
+            return { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" };
+          }
+          if (String(url).includes("/api/workspace")) {
+            return { version: 2, settings: { brand: "Hosted Demo" }, articles: [], conversations: [] };
+          }
+          if (String(url).includes("/api/ai/documents")) {
+            return { documents: [] };
+          }
+          if (String(url).includes("/api/ai/diagnostics")) {
+            return {
+              status: "healthy",
+              backend: "hosted",
+              documentCount: 0,
+              chunkCount: 0,
+              embeddingCount: 0,
+              documents: [],
+            };
+          }
+          return {};
+        },
+      };
+    },
+  });
+  await flushAsyncWork();
+  context.setTab("knowledge");
+
+  const form = new FakeElement("private-demo-login");
+  form.fields = { accessCredential: "private-demo-secret" };
+  await context.loginPrivateDemo({
+    preventDefault() {},
+    currentTarget: form,
+  });
+  await flushAsyncWork();
+
+  const loginCall = calls.find((call) => call.url.includes("/api/auth/login"));
+  assert.equal(JSON.parse(loginCall.options.body).accessCredential, "private-demo-secret");
+  assert.equal(context.AskWellApi.runtimeConfig.authenticated, true);
+  assert.equal(context.AskWellApi.runtimeConfig.csrfToken, "csrf-token");
+  assert.equal(context.localStorage.dump()["askwell-admin-token"], undefined);
+  assert.equal(calls.some((call) => call.options.headers?.["x-askwell-admin-token"]), false);
+  assert.ok(calls.some((call) => call.url.includes("/api/workspace")));
+  assert.ok(calls.some((call) => call.url.includes("/api/ai/documents")));
+  assert.ok(calls.some((call) => call.url.includes("/api/ai/diagnostics")));
+  assert.match(app.innerHTML, /Private demo session active/);
+  assert.match(app.innerHTML, /Storage healthy/);
+});
+
+test("hosted expired sessions clear client state and show sign-in recovery", async () => {
+  const { app, context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async (url) => ({
+      ok: !String(url).includes("/api/ai/documents"),
+      status: String(url).includes("/api/ai/documents") ? 401 : 200,
+      async json() {
+        if (String(url).includes("/api/config")) {
+          return { apiMode: "hosted", hostedConfigured: true };
+        }
+        if (String(url).includes("/api/auth/session")) {
+          return { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" };
+        }
+        if (String(url).includes("/api/ai/documents")) {
+          return { error: "Private demo session has expired", code: "session_expired" };
+        }
+        return { version: 1, settings: {}, articles: [], conversations: [] };
+      },
+    }),
+  });
+  await flushAsyncWork();
+  context.AskWellApi.runtimeConfig.authenticated = true;
+  context.AskWellApi.runtimeConfig.csrfToken = "csrf-token";
+  context.setTab("knowledge");
+
+  await context.AskWellState.refreshDocuments();
+
+  assert.equal(context.AskWellApi.runtimeConfig.authenticated, false);
+  assert.equal(context.AskWellApi.runtimeConfig.csrfToken, "");
+  assert.match(app.innerHTML, /Private demo session expired\. Sign in again\./);
+  assert.match(app.innerHTML, /Private demo sign-in/);
+});
+
 test("workspace export creates a JSON blob with current workspace data", () => {
   const { context } = createAppContext();
   context.exportWorkspace();

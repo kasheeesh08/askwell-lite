@@ -55,6 +55,12 @@ export function hostedConfig() {
   return {
     apiMode: enabled ? "hosted" : "local",
     hostedConfigured: enabled,
+    deployment: {
+      hostedMode: enabled,
+      authConfigured: Boolean(process.env.ASKWELL_ADMIN_TOKEN),
+      databaseConfigured: Boolean(process.env.TURSO_DATABASE_URL),
+      sessionSecretConfigured: Boolean(process.env.ASKWELL_SESSION_SECRET),
+    },
     embeddingProfile: publicProfile(SUPPORTED_EMBEDDING_PROFILE),
     indexingProfile: {
       id: SUPPORTED_INDEXING_PROFILE_WITH_KEY.id,

@@ -586,6 +586,29 @@ button {
   font-weight: 800;
 }
 
+.private-demo-form,
+.private-demo-session {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.private-demo-form > div,
+.private-demo-session {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.private-demo-form strong,
+.private-demo-session strong {
+  display: block;
+  color: var(--text);
+}
+
 .attention-list {
   display: grid;
   gap: 8px;

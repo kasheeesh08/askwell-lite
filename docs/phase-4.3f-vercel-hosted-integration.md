@@ -146,6 +146,7 @@ Required hosted environment:
 ```text
 ASKWELL_HOSTED_MODE=1
 ASKWELL_ADMIN_TOKEN=<long random admin token>
+ASKWELL_SESSION_SECRET=<long random independent session signing secret>
 TURSO_DATABASE_URL=<server-side Turso/libSQL URL>
 TURSO_AUTH_TOKEN=<server-side Turso auth token>
 ```
@@ -163,8 +164,26 @@ Do not expose:
 ```text
 TURSO_AUTH_TOKEN
 ASKWELL_ADMIN_TOKEN
+ASKWELL_SESSION_SECRET
 ASKWELL_LLM_API_KEY
 ```
+
+Private demo authentication flow:
+
+1. `/api/config` may expose non-secret configuration booleans such as whether hosted mode, admin auth, database URL, and session secret are configured. It must not return token values.
+2. A fresh browser has no private session, so `/api/auth/session` and protected hosted routes return sanitized authentication errors such as `missing_admin_auth`.
+3. The Knowledge page shows a private-demo sign-in form. The access credential is submitted once to `/api/auth/login` over HTTPS.
+4. The server compares the submitted credential with `ASKWELL_ADMIN_TOKEN` and returns an `HttpOnly`, `Secure`, `SameSite=Strict` session cookie plus a CSRF token for state-changing requests.
+5. Diagnostics, document listing, ingestion, answer, update, and delete requests use the secure cookie automatically with `credentials: "same-origin"`. The admin token is not stored in browser storage and is not sent as a normal frontend API header in hosted mode.
+6. Expired, invalidated, tampered, or CSRF-failed sessions clear the browser session state and prompt sign-in again.
+
+Redeployment checklist:
+
+1. In Vercel Project Settings -> Environment Variables, set `ASKWELL_HOSTED_MODE=1`, `ASKWELL_ADMIN_TOKEN`, `ASKWELL_SESSION_SECRET`, `TURSO_DATABASE_URL`, and `TURSO_AUTH_TOKEN` for Production.
+2. Redeploy the latest `main` commit after saving environment variables. Existing deployments do not automatically gain newly added environment values until redeployed.
+3. Confirm `/api/config` returns `apiMode: "hosted"` and non-secret deployment booleans only.
+4. Open the Knowledge page in a fresh browser session, sign in through the private-demo form, then run Document management -> Check.
+5. Protected routes should return `401/403` before sign-in and successful JSON responses after sign-in. A `500` with `missing_admin_token` or `missing_turso_database_url` means the corresponding server-side environment variable is absent or the deployment needs to be redeployed.
 
 ## Vercel Configuration
 

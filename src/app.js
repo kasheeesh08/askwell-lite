@@ -154,6 +154,7 @@
     return {
       state: store.getState(),
       saveStatus: store.getSaveStatus(),
+      runtimeConfig: root.AskWellApi.runtimeConfig,
       escapeHtml,
       tokenize,
       icons,
@@ -189,6 +190,7 @@
     root.document.querySelector("[data-chat-form]")?.addEventListener("submit", store.askWidget);
     root.document.querySelector("[data-search]")?.addEventListener("input", store.setSearch);
     root.document.querySelector("[data-settings-form]")?.addEventListener("submit", store.saveSettings);
+    root.document.querySelector("[data-private-demo-login]")?.addEventListener("submit", store.loginPrivateDemo);
     root.document
       .querySelector("[data-run-agents]")
       ?.addEventListener("click", () => store.runAgentAudit(pages.qualityGates));
@@ -249,6 +251,7 @@
   root.setSearch = store.setSearch;
   root.toggleConversation = store.toggleConversation;
   root.saveSettings = store.saveSettings;
+  root.loginPrivateDemo = store.loginPrivateDemo;
   root.resetDemo = store.resetDemo;
   root.runAgentAudit = () => store.runAgentAudit(pages.qualityGates);
   root.exportWorkspace = store.exportWorkspace;

@@ -17,7 +17,7 @@
   }
 
   function knowledgePage(ctx) {
-    const { state, escapeHtml, icons, pageHeader, shell, tokenize } = ctx;
+    const { state, escapeHtml, icons, pageHeader, shell, tokenize, runtimeConfig } = ctx;
     const query = tokenize(state.search || "");
     const visibleArticles = query.length
       ? state.articles.filter((article) => {
@@ -41,6 +41,24 @@
       ? state.articles.find((article) => article.id === selectedDocument.id)
       : null;
     const updateTags = selectedArticle?.tags || selectedDocument?.metadata?.tags || [];
+    const privateDemoSignIn =
+      runtimeConfig?.apiMode === "hosted" && !runtimeConfig.authenticated
+        ? `
+          <form class="private-demo-form" data-private-demo-login>
+            <div>
+              <strong>Private demo sign-in</strong>
+              <span>Enter the access credential to start a secure HttpOnly browser session.</span>
+            </div>
+            <label class="field">
+              <span>Access credential</span>
+              <input class="input" name="accessCredential" type="password" autocomplete="current-password" placeholder="Private demo access" />
+            </label>
+            <button class="button" type="submit">${icons.check} Sign in</button>
+          </form>
+        `
+        : runtimeConfig?.apiMode === "hosted"
+          ? `<div class="private-demo-session"><strong>Private demo session active</strong><span>Requests use the secure session cookie.</span></div>`
+          : "";
 
     const documentRows = documents
       .map((document) => {
@@ -194,6 +212,7 @@
         <section class="panel">
           <div class="panel-header"><h2>Document management</h2><span class="tag">${documents.length} indexed</span></div>
           <div class="panel-body">
+            ${privateDemoSignIn}
             ${diagnosticsPanel}
             <div class="document-list ${status.state === "loading" ? "loading" : ""}">
               ${

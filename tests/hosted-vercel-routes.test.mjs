@@ -217,8 +217,14 @@ test("vercel config route exposes hosted mode without secrets", async () => {
     const result = await call(configRoute, request({ url: "/api/config" }));
     assert.equal(result.status, 200);
     assert.equal(result.body.apiMode, "hosted");
+    assert.equal(result.body.deployment.hostedMode, true);
+    assert.equal(result.body.deployment.authConfigured, true);
+    assert.equal(result.body.deployment.databaseConfigured, true);
+    assert.equal(result.body.deployment.sessionSecretConfigured, true);
     assert.equal(result.body.embeddingProfile.modelId, "Xenova/all-MiniLM-L6-v2");
     assert.equal("TURSO_AUTH_TOKEN" in result.body, false);
+    assert.equal("ASKWELL_ADMIN_TOKEN" in result.body, false);
+    assert.equal(JSON.stringify(result.body).includes(adminToken), false);
   });
 });
 
