@@ -1380,6 +1380,73 @@ test("knowledge private demo sign-in creates session and retries hosted diagnost
   assert.match(app.innerHTML, /Storage healthy/);
 });
 
+test("knowledge private demo sign-in continues when browser clears event currentTarget", async () => {
+  const calls = [];
+  const { app, context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      return {
+        ok: !String(url).includes("/api/auth/session"),
+        status: String(url).includes("/api/auth/session") ? 401 : 200,
+        async json() {
+          if (String(url).includes("/api/config")) {
+            return { apiMode: "hosted", hostedConfigured: true };
+          }
+          if (String(url).includes("/api/auth/session")) {
+            return { error: "Private demo session is required", code: "missing_admin_auth" };
+          }
+          if (String(url).includes("/api/auth/login")) {
+            return { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" };
+          }
+          if (String(url).includes("/api/workspace")) {
+            return { version: 3, settings: { brand: "Hosted Demo" }, articles: [], conversations: [] };
+          }
+          if (String(url).includes("/api/ai/documents")) {
+            return { documents: [{ id: "doc-1", title: "Demo doc", status: "indexed", chunk_count: 1 }] };
+          }
+          if (String(url).includes("/api/ai/diagnostics")) {
+            return {
+              status: "healthy",
+              backend: "hosted",
+              documentCount: 1,
+              chunkCount: 1,
+              embeddingCount: 1,
+              documents: [{ id: "doc-1", title: "Demo doc", status: "indexed", chunk_count: 1 }],
+            };
+          }
+          return {};
+        },
+      };
+    },
+  });
+  await flushAsyncWork();
+  context.setTab("knowledge");
+
+  const form = new FakeElement("private-demo-login");
+  form.fields = { accessCredential: "private-demo-secret" };
+  let currentTarget = form;
+  await context.loginPrivateDemo({
+    preventDefault() {},
+    get currentTarget() {
+      const value = currentTarget;
+      currentTarget = null;
+      return value;
+    },
+  });
+  await flushAsyncWork();
+
+  assert.equal(form.resetCalled, true);
+  assert.ok(calls.some((call) => call.url.includes("/api/auth/login")));
+  assert.ok(calls.some((call) => call.url.includes("/api/workspace")));
+  assert.ok(calls.some((call) => call.url.includes("/api/ai/documents")));
+  assert.ok(calls.some((call) => call.url.includes("/api/ai/diagnostics")));
+  assert.match(app.innerHTML, /Private demo session active/);
+  assert.match(app.innerHTML, /Storage healthy/);
+  assert.match(app.innerHTML, /1 indexed/);
+});
+
 test("hosted expired sessions clear client state and show sign-in recovery", async () => {
   const { app, context } = createAppContext({
     location: { protocol: "https:" },

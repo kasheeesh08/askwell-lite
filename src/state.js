@@ -108,6 +108,10 @@
     return root.localStorage.getItem(ADMIN_TOKEN_KEY);
   }
 
+  function resetForm(formElement) {
+    if (formElement && typeof formElement.reset === "function") formElement.reset();
+  }
+
   function hostedAuthRequired(error) {
     return typeof api.isHostedAuthError === "function" && api.isHostedAuthError(error);
   }
@@ -283,11 +287,12 @@
 
   function addArticle(event) {
     event.preventDefault();
-    const article = articleFromForm(new root.FormData(event.currentTarget), makeId);
+    const formElement = event.currentTarget;
+    const article = articleFromForm(new root.FormData(formElement), makeId);
     if (!isValidArticle(article)) return;
 
     state = { ...state, articles: [article, ...state.articles] };
-    event.currentTarget.reset();
+    resetForm(formElement);
     saveState();
     notify();
   }
@@ -433,7 +438,8 @@
 
   async function updateDocument(event) {
     event.preventDefault();
-    const update = documentUpdateFromForm(new root.FormData(event.currentTarget));
+    const formElement = event.currentTarget;
+    const update = documentUpdateFromForm(new root.FormData(formElement));
     if (!update.id || !update.title || !update.content) {
       setDocumentStatus({
         selectedId: update.id,
@@ -496,7 +502,7 @@
           : `Document ${status?.status || "updated"}`,
       });
       refreshDocuments({ preserveMessage: true });
-      event.currentTarget.reset();
+      resetForm(formElement);
     } catch (error) {
       setDocumentPending(update.id, false);
       setDocumentStatus({
@@ -608,7 +614,8 @@
 
   async function loginPrivateDemo(event) {
     event.preventDefault();
-    const form = new root.FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new root.FormData(formElement);
     const accessCredential = form.get("accessCredential")?.trim();
     if (!accessCredential) {
       setDocumentStatus({
@@ -630,7 +637,7 @@
     try {
       await api.loginHosted(accessCredential);
       root.localStorage.removeItem(ADMIN_TOKEN_KEY);
-      event.currentTarget.reset();
+      resetForm(formElement);
       saveStatus = { state: "saved", message: "Private demo session active" };
       setDocumentStatus({
         state: "saved",
