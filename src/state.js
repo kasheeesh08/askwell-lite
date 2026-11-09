@@ -104,6 +104,7 @@
   }
 
   function getAdminToken() {
+    if (api.isHostedMode()) return "";
     return root.localStorage.getItem(ADMIN_TOKEN_KEY);
   }
 
@@ -213,7 +214,7 @@
             articles: state.articles,
             conversations: state.conversations,
           },
-          root.localStorage.getItem(ADMIN_TOKEN_KEY),
+          getAdminToken(),
         );
 
         state = normalizeState({ ...state, ...payload, tab: state.tab }, defaultState);
@@ -529,12 +530,27 @@
     notify();
   }
 
-  function saveSettings(event) {
+  async function saveSettings(event) {
     event.preventDefault();
     const form = new root.FormData(event.currentTarget);
     const adminToken = form.get("adminToken")?.trim();
     if (adminToken) {
-      root.localStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
+      if (api.isHostedMode()) {
+        try {
+          await api.loginHosted(adminToken);
+          root.localStorage.removeItem(ADMIN_TOKEN_KEY);
+          saveStatus = { state: "saved", message: "Private demo session active" };
+        } catch (error) {
+          saveStatus = {
+            state: "failed",
+            message: error.payload?.error || error.message || "Private demo login failed",
+          };
+          notify();
+          return;
+        }
+      } else {
+        root.localStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
+      }
     }
     const settings = {
       brand: form.get("brand").trim() || defaultSettings.brand,

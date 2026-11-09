@@ -229,7 +229,7 @@
 
   store.subscribe(render);
   render();
-  store.hydrateFromRemote();
+  root.AskWellApi.initializeConfig().finally(() => store.hydrateFromRemote());
 
   root.AskWellApp = {
     render,

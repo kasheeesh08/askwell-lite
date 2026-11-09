@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { webcrypto } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -19,6 +20,7 @@ const frontendSources = [
   "src/utils/escape.js",
   "src/utils/validation.js",
   "src/retrieval.js",
+  "src/hosted/browser-embeddings.js",
   "src/api.js",
   "src/state.js",
   "src/render/overview.js",
@@ -187,6 +189,7 @@ function createAppContext(options = {}) {
     Date,
     FormData: FakeFormData,
     Math,
+    TextEncoder,
     URL: {
       createObjectURL(blob) {
         objectUrls.push(blob);
@@ -195,6 +198,10 @@ function createAppContext(options = {}) {
       revokeObjectURL(url) {
         revokedUrls.push(url);
       },
+    },
+    crypto: {
+      subtle: webcrypto.subtle,
+      randomUUID: () => `id-${Math.random().toString(16).slice(2)}`,
     },
     self: {
       crypto: {
@@ -967,6 +974,73 @@ test("api client fetches AI diagnostics through Node", async () => {
   assert.equal(diagnostics.status, "healthy");
 });
 
+test("api client selects hosted mode and sends browser-generated vectors", async () => {
+  const calls = [];
+  const hostedVector = Array.from({ length: 384 }, (_, index) => (index === 0 ? 1 : 0));
+  const { context } = createAppContext({
+    location: { protocol: "http:" },
+    localStorage: { "askwell-api-mode": "hosted", "askwell-admin-token": "token" },
+    fetch: async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      return {
+        ok: true,
+        async json() {
+          if (String(url).includes("/api/ai/answer")) {
+            return {
+              answer: "Hosted answer",
+              citations: [{ documentId: "trial", chunkId: "trial:chunk-0", title: "Trial" }],
+              insufficientContext: false,
+            };
+          }
+          if (String(url).includes("/api/ai/ingest")) {
+            return { documentStatuses: [{ id: "trial", status: "created" }] };
+          }
+          return { apiMode: "hosted", hostedConfigured: true };
+        },
+      };
+    },
+  });
+  context.AskWellHostedEmbeddings.__setEmbedderForTests(async () => hostedVector);
+  context.AskWellApi.runtimeConfig.csrfToken = "csrf-token";
+
+  const answer = await context.AskWellApi.answerWithAi("Do I need a card?");
+  const ingest = await context.AskWellApi.ingestDocuments(
+    { articles: [{ id: "trial", title: "Trial", content: "A card is not required." }] },
+    "token",
+  );
+
+  const answerBody = JSON.parse(calls.find((call) => call.url.includes("/api/ai/answer")).options.body);
+  const answerCall = calls.find((call) => call.url.includes("/api/ai/answer"));
+  const ingestBody = JSON.parse(calls.find((call) => call.url.includes("/api/ai/ingest")).options.body);
+  assert.equal(context.AskWellApi.isHostedMode(), true);
+  assert.equal(answerCall.options.headers["x-askwell-admin-token"], undefined);
+  assert.equal(answerCall.options.headers["x-askwell-csrf-token"], "csrf-token");
+  assert.equal(answerBody.embeddingProfileId, "xenova-all-minilm-l6-v2-transformersjs-fp32-v1");
+  assert.equal(answerBody.queryVector.length, 384);
+  assert.equal(answer.citations[0].chunk_id, "trial:chunk-0");
+  assert.equal(ingestBody.embeddingProfile.id, "xenova-all-minilm-l6-v2-transformersjs-fp32-v1");
+  assert.equal(ingestBody.documents[0].chunks[0].id, "trial:chunk-0");
+  assert.equal(ingestBody.documents[0].vectors[0].length, 384);
+  assert.equal(ingest.document_statuses[0].status, "created");
+  assert.equal(calls.some((call) => call.options.headers?.["x-askwell-admin-token"] === "token"), false);
+});
+
+test("api client reports hosted embedding model failures", async () => {
+  const { context } = createAppContext({
+    location: { protocol: "http:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async () => ({ ok: true, async json() { return {}; } }),
+  });
+  context.AskWellHostedEmbeddings.__setEmbedderForTests(async () => {
+    throw new Error("model unavailable");
+  });
+
+  await assert.rejects(
+    () => context.AskWellApi.answerWithAi("Can I test hosted mode?"),
+    /model unavailable/,
+  );
+});
+
 test("chat questions create answers, sources, and inbox entries", () => {
   const { app, context } = createAppContext();
   const form = new FakeElement("chat-form");
@@ -1134,6 +1208,44 @@ test("widget settings update the install snippet and preview brand", () => {
   assert.match(app.innerHTML, /Welcome to RepoPilot support\./);
   assert.equal(context.localStorage.dump()["askwell-admin-token"], "secret-token");
   assert.doesNotMatch(app.innerHTML, /secret-token/);
+});
+
+test("hosted widget settings exchange access credential for a session without localStorage token", async () => {
+  const calls = [];
+  const { context } = createAppContext({
+    location: { protocol: "http:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      return {
+        ok: true,
+        async json() {
+          if (String(url).includes("/api/auth/login")) {
+            return { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" };
+          }
+          return { version: 1, settings: {}, articles: [], conversations: [] };
+        },
+      };
+    },
+  });
+  const form = new FakeElement("settings-form");
+  form.fields = {
+    brand: "Hosted Demo",
+    accent: "#123456",
+    welcome: "Welcome to the private demo.",
+    adminToken: "secret-token",
+  };
+
+  await context.saveSettings({
+    preventDefault() {},
+    currentTarget: form,
+  });
+
+  const loginCall = calls.find((call) => call.url.includes("/api/auth/login"));
+  assert.equal(JSON.parse(loginCall.options.body).accessCredential, "secret-token");
+  assert.equal(context.localStorage.dump()["askwell-admin-token"], undefined);
+  assert.equal(context.AskWellApi.runtimeConfig.csrfToken, "csrf-token");
+  assert.equal(calls.some((call) => call.options.headers?.["x-askwell-admin-token"] === "secret-token"), false);
 });
 
 test("workspace export creates a JSON blob with current workspace data", () => {

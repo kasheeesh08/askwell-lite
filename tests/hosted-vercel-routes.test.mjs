@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -185,6 +185,31 @@ test("vercel deployment config keeps local runtimes out of hosted functions", as
   assert.equal(ignored.includes("index.html"), false);
   assert.equal(ignored.includes("styles.css"), false);
   assert.equal(ignored.includes("askwell-widget.js"), false);
+});
+
+test("frontend hosted API URLs have matching Vercel route files", async () => {
+  const apiClient = await readFile("src/api.js", "utf8");
+  const frontendRoutes = [
+    ["./api/config", "api/config.mjs"],
+    ["./api/auth/login", "api/auth/login.mjs"],
+    ["./api/auth/session", "api/auth/session.mjs"],
+    ["./api/auth/logout", "api/auth/logout.mjs"],
+    ["./api/workspace", "api/workspace.mjs"],
+    ["./api/ai/diagnostics", "api/ai/diagnostics.mjs"],
+    ["./api/ai/documents", "api/ai/documents/index.mjs"],
+    ["./api/ai/ingest", "api/ai/ingest.mjs"],
+    ["./api/ai/answer", "api/ai/answer.mjs"],
+    ["./api/ai/documents/", "api/ai/documents/[id].mjs"],
+  ];
+  const additionalHostedRoutes = ["api/ai/health.mjs"];
+
+  for (const [frontendUrl, routeFile] of frontendRoutes) {
+    assert.match(apiClient, new RegExp(frontendUrl.replace(/[./]/g, "\\$&")));
+    await access(routeFile);
+  }
+  for (const routeFile of additionalHostedRoutes) {
+    await access(routeFile);
+  }
 });
 
 test("vercel config route exposes hosted mode without secrets", async () => {

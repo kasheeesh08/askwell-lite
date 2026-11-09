@@ -39,8 +39,8 @@
             <textarea class="textarea" name="welcome">${escapeHtml(state.settings.welcome)}</textarea>
           </label>
           <label class="field">
-            <span>Server admin token</span>
-            <input class="input" name="adminToken" type="password" placeholder="Only needed when ASKWELL_ADMIN_TOKEN is set" autocomplete="off" />
+            <span>Private demo access</span>
+            <input class="input" name="adminToken" type="password" placeholder="Creates a secure hosted session when hosted mode is active" autocomplete="off" />
           </label>
           <button class="button" type="submit">Save settings</button>
         </form>

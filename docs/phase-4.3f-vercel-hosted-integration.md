@@ -211,6 +211,32 @@ Correction:
 
 This does not change local mode. `npm start` still runs `server.mjs` locally.
 
+### Hosted API 404 Fix
+
+Date: 2026-11-09
+
+Observed production behavior:
+
+```text
+GET /api/config -> 404
+GET /api/ai/diagnostics -> 404
+GET /api/ai/documents -> 404
+POST /api/ai/ingest -> 404
+POST /api/ai/answer -> 404
+```
+
+Root cause: the Vercel route files under `api/` and the hosted runtime modules under `src/hosted/` existed in the local working tree but were not committed to the branch being deployed. Vercel therefore deployed the static frontend and configuration, but no serverless function files existed in the deployment artifact. The Knowledge page diagnostics Check button calls `./api/ai/diagnostics`, so it received `Request failed (404)` before the Turso adapter or authentication layer could run.
+
+Correction:
+
+- commit the intentional Vercel route wrappers under `api/`;
+- commit the shared hosted runtime modules under `src/hosted/`;
+- commit the hosted browser API/client wiring and `@libsql/client` dependency metadata required by those functions;
+- add a regression test that confirms every frontend-hosted API URL in `src/api.js` has a matching Vercel route file, including `./api/ai/diagnostics`;
+- preserve the existing local `server.mjs` workflow and the private hosted session/authentication behavior.
+
+This fix does not reset, migrate, or modify Turso data. Remote Turso connectivity still depends on the production environment variables configured in Vercel.
+
 ## Security Review
 
 Verified by code and tests:
