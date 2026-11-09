@@ -41,7 +41,7 @@ export function createHostedRoute({ hostedPath, methods, transformRequest } = {}
     }
     const mapped = transformRequest
       ? await transformRequest(req)
-      : { ...req, url: withOriginalQuery(hostedPath, req.url) };
+      : forwardHostedRequest(req, { url: withOriginalQuery(hostedPath, req.url) });
     return handler(mapped, res);
   };
 }
@@ -74,8 +74,7 @@ export function hostedConfig() {
 export async function documentDeleteRequest(req) {
   const route = new URL(req.url || "/", "http://localhost");
   const documentId = req.query?.id || decodeURIComponent(route.pathname.split("/").filter(Boolean).at(-1) || "");
-  return {
-    ...req,
+  return forwardHostedRequest(req, {
     url: withOriginalQuery("/api/hosted/delete-document", req.url),
     body: {
       workspaceId: route.searchParams.get("workspaceId") || header(req, "x-askwell-workspace-id") || "default",
@@ -84,7 +83,30 @@ export async function documentDeleteRequest(req) {
         ? Number(req.query.expectedDocumentVersion)
         : undefined,
     },
-  };
+  });
+}
+
+export function forwardHostedRequest(req, overrides = {}) {
+  const mapped = Object.create(req || null);
+  for (const property of ["method", "headers", "query", "body", "socket"]) {
+    if (req?.[property] !== undefined) {
+      Object.defineProperty(mapped, property, {
+        value: req[property],
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+    }
+  }
+  for (const [property, value] of Object.entries(overrides)) {
+    Object.defineProperty(mapped, property, {
+      value,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+  }
+  return mapped;
 }
 
 export function sendPublicConfig(req, res) {

@@ -17,7 +17,7 @@ import answerRoute from "../api/ai/answer.mjs";
 import documentsRoute from "../api/ai/documents/index.mjs";
 import deleteDocumentRoute from "../api/ai/documents/[id].mjs";
 import { createHostedRoute } from "../src/hosted/vercel-route.mjs";
-import { resetHostedSessionRevocationsForTests } from "../src/hosted/session.mjs";
+import { createHostedSession, resetHostedSessionRevocationsForTests } from "../src/hosted/session.mjs";
 import {
   SUPPORTED_EMBEDDING_PROFILE,
   SUPPORTED_INDEXING_PROFILE_WITH_KEY,
@@ -77,6 +77,17 @@ function request({ method = "GET", url = "/api/config", body, headers = {}, quer
   return { method, url, body, headers, query };
 }
 
+function productionRequest({ method = "GET", url = "/api/config", body, headers = {}, query } = {}) {
+  const req = { method, url, body, query };
+  Object.defineProperty(req, "headers", {
+    value: headers,
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  });
+  return req;
+}
+
 function response() {
   return {
     statusCode: 0,
@@ -105,6 +116,7 @@ async function withHostedEnv(callback) {
     ASKWELL_HOSTED_MODE: process.env.ASKWELL_HOSTED_MODE,
     ASKWELL_ADMIN_TOKEN: process.env.ASKWELL_ADMIN_TOKEN,
     ASKWELL_SESSION_SECRET: process.env.ASKWELL_SESSION_SECRET,
+    ASKWELL_HOSTED_SESSION_TTL_SECONDS: process.env.ASKWELL_HOSTED_SESSION_TTL_SECONDS,
     ASKWELL_HOSTED_LOGIN_RATE_LIMIT: process.env.ASKWELL_HOSTED_LOGIN_RATE_LIMIT,
     ASKWELL_HOSTED_LOGIN_RATE_WINDOW_MS: process.env.ASKWELL_HOSTED_LOGIN_RATE_WINDOW_MS,
     TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
@@ -286,8 +298,84 @@ test("hosted auth routes issue HttpOnly sessions without exposing admin token", 
   });
 });
 
+test("hosted routes accept the same non-enumerable cookie session confirmed by auth session", async () => {
+  await withHostedEnv(async () => {
+    const login = await call(
+      loginRoute,
+      productionRequest({
+        method: "POST",
+        url: "/api/auth/login",
+        body: { accessCredential: adminToken },
+      }),
+    );
+    assert.equal(login.status, 200);
+    const cookie = login.headers["set-cookie"].split(";")[0];
+    const headers = { cookie, "x-askwell-csrf-token": login.body.csrfToken };
+
+    const session = await call(
+      sessionRoute,
+      productionRequest({ url: "/api/auth/session", headers }),
+    );
+    assert.equal(session.status, 200);
+    assert.equal(session.body.authenticated, true);
+
+    const workspace = await call(
+      workspaceRoute,
+      productionRequest({ url: "/api/workspace", headers }),
+    );
+    assert.equal(workspace.status, 200);
+    assert.equal(workspace.body.workspace.version, 1);
+
+    const diagnostics = await call(
+      diagnosticsRoute,
+      productionRequest({ url: "/api/ai/diagnostics", headers }),
+    );
+    assert.equal(diagnostics.status, 200);
+    assert.equal(diagnostics.body.status, "healthy");
+  });
+});
+
+test("hosted routes reject missing, expired, invalid-signature, and tampered cookie sessions", async () => {
+  await withHostedEnv(async () => {
+    const missing = await call(
+      workspaceRoute,
+      productionRequest({ url: "/api/workspace" }),
+    );
+    assert.equal(missing.status, 401);
+    assert.equal(missing.body.code, "missing_admin_auth");
+
+    process.env.ASKWELL_HOSTED_SESSION_TTL_SECONDS = "1";
+    const expired = createHostedSession(process.env, { nowMs: Date.now() - 2_000 }).cookie.split(";")[0];
+    delete process.env.ASKWELL_HOSTED_SESSION_TTL_SECONDS;
+    const expiredResult = await call(
+      workspaceRoute,
+      productionRequest({ url: "/api/workspace", headers: { cookie: expired } }),
+    );
+    assert.equal(expiredResult.status, 401);
+    assert.equal(expiredResult.body.code, "session_expired");
+
+    const login = await loginSession();
+    const invalidSignature = login.cookie.replace(/\.[^.]+$/, ".invalid-signature");
+    const invalidResult = await call(
+      workspaceRoute,
+      productionRequest({ url: "/api/workspace", headers: { cookie: invalidSignature } }),
+    );
+    assert.equal(invalidResult.status, 401);
+    assert.equal(invalidResult.body.code, "invalid_session");
+
+    const tampered = login.cookie.replace(/.$/, login.cookie.endsWith("a") ? "b" : "a");
+    const tamperedResult = await call(
+      workspaceRoute,
+      productionRequest({ url: "/api/workspace", headers: { cookie: tampered } }),
+    );
+    assert.equal(tamperedResult.status, 401);
+    assert.equal(tamperedResult.body.code, "invalid_session");
+  });
+});
+
 test("hosted browser assets and auth responses do not expose the admin token", async () => {
   await withHostedEnv(async () => {
+    const sessionSecret = process.env.ASKWELL_SESSION_SECRET;
     const assets = await Promise.all([
       readFile("index.html", "utf8"),
       readFile("src/api.js", "utf8"),
@@ -296,9 +384,11 @@ test("hosted browser assets and auth responses do not expose the admin token", a
       readFile("src/render/install.js", "utf8"),
     ]);
     assert.equal(assets.some((content) => content.includes(adminToken)), false);
+    assert.equal(assets.some((content) => content.includes(sessionSecret)), false);
 
     const config = await call(configRoute, request({ url: "/api/config" }));
     assert.equal(JSON.stringify(config.body).includes(adminToken), false);
+    assert.equal(JSON.stringify(config.body).includes(sessionSecret), false);
 
     const login = await call(
       loginRoute,
@@ -306,6 +396,15 @@ test("hosted browser assets and auth responses do not expose the admin token", a
     );
     assert.equal(login.status, 200);
     assert.equal(JSON.stringify(login.body).includes(adminToken), false);
+    assert.equal(JSON.stringify(login.body).includes(sessionSecret), false);
+
+    const session = await call(
+      sessionRoute,
+      request({ url: "/api/auth/session", headers: { cookie: login.headers["set-cookie"].split(";")[0] } }),
+    );
+    assert.equal(session.status, 200);
+    assert.equal(JSON.stringify(session.body).includes(adminToken), false);
+    assert.equal(JSON.stringify(session.body).includes(sessionSecret), false);
   });
 });
 

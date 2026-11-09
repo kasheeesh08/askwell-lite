@@ -34,8 +34,7 @@ export async function enforceHostedAuth(req, env = process.env, options = {}) {
     return { type: "server-token" };
   }
 
-  const session = verifyHostedSession(req, env, options);
-  await enforceSharedRevocation(session, options);
+  const session = await verifyHostedSessionRequest(req, env, options);
   if (isMutatingMethod(method)) enforceCsrf(req, session, env);
   return { type: "session", session };
 }
@@ -73,6 +72,10 @@ export function validateAdminCredential(received, env = process.env) {
 }
 
 export async function verifyHostedSessionWithStore(req, env = process.env, options = {}) {
+  return verifyHostedSessionRequest(req, env, options);
+}
+
+export async function verifyHostedSessionRequest(req, env = process.env, options = {}) {
   const session = verifyHostedSession(req, env, options);
   await enforceSharedRevocation(session, options);
   return session;
