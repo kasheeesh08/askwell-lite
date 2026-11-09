@@ -458,6 +458,57 @@
     await refreshDiagnostics();
   }
 
+  async function deleteIndexedDocument(id) {
+    if (!id || isDocumentPending(id)) return;
+    const currentDocuments = Array.isArray(state.documentStatus?.documents)
+      ? state.documentStatus.documents
+      : [];
+    const document = currentDocuments.find((candidate) => candidate.id === id);
+    if (!document) {
+      setDocumentStatus({
+        selectedId: "",
+        state: "failed",
+        message: "Selected document is no longer available",
+      });
+      return;
+    }
+    const title = document.title || id;
+    const confirmed =
+      typeof root.confirm === "function"
+        ? root.confirm(`Delete indexed document "${title}" (${id})? This removes its chunks and embeddings from the index.`)
+        : true;
+    if (!confirmed) return;
+
+    setDocumentPending(id, true);
+    setDocumentStatus({
+      selectedId: id,
+      state: "saving",
+      message: `Deleting ${title}`,
+    });
+    try {
+      await api.deleteDocument(id, getAdminToken());
+      const remainingDocuments = currentDocuments.filter((candidate) => candidate.id !== id);
+      setDocumentPending(id, false);
+      setDocumentStatus({
+        selectedId: remainingDocuments[0]?.id || "",
+        state: "saved",
+        message: `Deleted ${title} from the index`,
+        documents: remainingDocuments,
+      });
+      await refreshDocuments({ preserveMessage: true });
+      await refreshDiagnostics();
+    } catch (error) {
+      setDocumentPending(id, false);
+      setDocumentStatus({
+        selectedId: id,
+        state: "failed",
+        message: hostedAuthRequired(error)
+          ? hostedAuthMessage(error)
+          : error.payload?.error || error.message || "Delete failed",
+      });
+    }
+  }
+
   async function updateDocument(event) {
     event.preventDefault();
     const formElement = event.currentTarget;
@@ -853,6 +904,7 @@
     selectDocument,
     reindexDocument,
     retryDocument,
+    deleteIndexedDocument,
     updateDocument,
     setTab,
     addArticle,

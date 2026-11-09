@@ -214,6 +214,10 @@
       button.addEventListener("click", () => store.retryDocument(button.dataset.retryDocument));
     });
 
+    root.document.querySelectorAll("[data-delete-document]").forEach((button) => {
+      button.addEventListener("click", () => store.deleteIndexedDocument(button.dataset.deleteDocument));
+    });
+
     root.document
       .querySelector("[data-refresh-diagnostics]")
       ?.addEventListener("click", store.refreshDiagnostics);
@@ -247,6 +251,7 @@
   root.selectDocument = store.selectDocument;
   root.reindexDocument = store.reindexDocument;
   root.retryDocument = store.retryDocument;
+  root.deleteIndexedDocument = store.deleteIndexedDocument;
   root.updateDocument = store.updateDocument;
   root.setSearch = store.setSearch;
   root.toggleConversation = store.toggleConversation;

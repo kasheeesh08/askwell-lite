@@ -157,6 +157,16 @@ function createAppContext(options = {}) {
         });
       }
 
+      const documentDeletes = [...app.innerHTML.matchAll(/data-delete-document="([^"]+)"/g)];
+      if (selector === "[data-delete-document]") {
+        return documentDeletes.map((match) => {
+          const element = new FakeElement("delete-document");
+          element.dataset.deleteDocument = match[1];
+          listeners.push(element);
+          return element;
+        });
+      }
+
       return [];
     },
     createElement(tag) {
@@ -549,6 +559,247 @@ test("knowledge page renders document details and empty index states", async () 
   assert.match(app.innerHTML, /2 chunks/);
   assert.match(app.innerHTML, /abcdef1234/);
   assert.match(app.innerHTML, /Update index/);
+  assert.match(app.innerHTML, /Delete Document/);
+});
+
+test("document delete action confirms, removes indexed document, and refreshes diagnostics", async () => {
+  const calls = [];
+  const confirms = [];
+  let documents = [
+    { id: "remote", title: "Remote", source_type: "article", chunk_count: 2 },
+    { id: "second", title: "Second", source_type: "article", chunk_count: 1 },
+  ];
+  const { app, context, listeners } = createAppContext({
+    location: { protocol: "http:" },
+    confirm(message) {
+      confirms.push(message);
+      return true;
+    },
+    fetch: async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      if (String(url).includes("/api/workspace")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              version: 1,
+              settings: { brand: "Remote", accent: "#ef7d62", welcome: "Hi" },
+              articles: [{ id: "remote", title: "Remote", tags: [], content: "Remote body" }],
+              conversations: [],
+            };
+          },
+        };
+      }
+      if (String(url).includes("/api/ai/diagnostics")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              backend: "sqlite",
+              status: "healthy",
+              integrity_check: "ok",
+              document_count: documents.length,
+              chunk_count: documents.reduce((sum, document) => sum + document.chunk_count, 0),
+              embedding_count: documents.reduce((sum, document) => sum + document.chunk_count, 0),
+              documents,
+            };
+          },
+        };
+      }
+      if (String(url).includes("/api/ai/documents/remote") && options.method === "DELETE") {
+        documents = documents.filter((document) => document.id !== "remote");
+        return {
+          ok: true,
+          async json() {
+            return { document_id: "remote", deleted: true, chunks_deleted: 2, embeddings_deleted: 2 };
+          },
+        };
+      }
+      if (String(url).includes("/api/ai/documents")) {
+        return {
+          ok: true,
+          async json() {
+            return { documents };
+          },
+        };
+      }
+      return {
+        ok: true,
+        async json() {
+          return { status: "ok", document_statuses: [] };
+        },
+      };
+    },
+  });
+
+  await flushAsyncWork();
+  await context.AskWellState.refreshDocuments();
+  context.setTab("knowledge");
+  assert.match(app.innerHTML, /Delete Document/);
+
+  const deleteButton = listeners.find((element) => element.dataset.deleteDocument === "remote");
+  await deleteButton.listeners.click();
+  await flushAsyncWork();
+
+  const deleteCalls = calls.filter((call) => call.options.method === "DELETE");
+  assert.equal(deleteCalls.length, 1);
+  assert.match(confirms[0], /Remote/);
+  assert.match(confirms[0], /remote/);
+  assert.doesNotMatch(app.innerHTML, /data-select-document="remote"/);
+  assert.match(app.innerHTML, /data-select-document="second"/);
+  assert.match(app.innerHTML, /Deleted Remote from the index/);
+  assert.match(app.innerHTML, /1 indexed/);
+  assert.equal(context.AskWellState.getState().articles.length, 1);
+});
+
+test("document delete action respects cancellation and preserves the document", async () => {
+  let deleteCalls = 0;
+  const initialState = {
+    version: 1,
+    tab: "knowledge",
+    settings: { brand: "Cancel", accent: "#ef7d62", welcome: "Hi" },
+    articles: [],
+    conversations: [],
+    messages: [],
+    documentStatus: {
+      state: "saved",
+      message: "1 indexed document",
+      selectedId: "remote",
+      documents: [{ id: "remote", title: "Remote", source_type: "article", chunk_count: 1 }],
+    },
+  };
+  const { app, context } = createAppContext({
+    localStorage: { "askwell-lite-state": JSON.stringify(initialState) },
+    location: { protocol: "http:" },
+    confirm: () => false,
+    fetch: async (url, options = {}) => {
+      if (String(url).includes("/api/ai/documents") && options.method === "DELETE") deleteCalls += 1;
+      return {
+        ok: true,
+        async json() {
+          return { documents: initialState.documentStatus.documents };
+        },
+      };
+    },
+  });
+
+  await context.deleteIndexedDocument("remote");
+  assert.equal(deleteCalls, 0);
+  assert.match(app.innerHTML, /Remote/);
+  assert.match(app.innerHTML, /Delete Document/);
+});
+
+test("document delete action preserves document and reports API failures", async () => {
+  let deleteCalls = 0;
+  const initialState = {
+    version: 1,
+    tab: "knowledge",
+    settings: { brand: "Failure", accent: "#ef7d62", welcome: "Hi" },
+    articles: [],
+    conversations: [],
+    messages: [],
+    documentStatus: {
+      state: "saved",
+      message: "1 indexed document",
+      selectedId: "remote",
+      documents: [{ id: "remote", title: "Remote", source_type: "article", chunk_count: 1 }],
+    },
+  };
+  const { app, context } = createAppContext({
+    localStorage: { "askwell-lite-state": JSON.stringify(initialState) },
+    location: { protocol: "http:" },
+    confirm: () => true,
+    fetch: async (url, options = {}) => {
+      if (String(url).includes("/api/ai/documents/remote") && options.method === "DELETE") {
+        deleteCalls += 1;
+        return {
+          ok: false,
+          status: 503,
+          async json() {
+            return { error: "Storage delete failed" };
+          },
+        };
+      }
+      return {
+        ok: true,
+        async json() {
+          return { documents: initialState.documentStatus.documents };
+        },
+      };
+    },
+  });
+
+  await context.deleteIndexedDocument("remote");
+  assert.equal(deleteCalls, 1);
+  assert.match(app.innerHTML, /Storage delete failed/);
+  assert.match(app.innerHTML, /data-select-document="remote"/);
+});
+
+test("document delete action handles stale selection and duplicate submissions", async () => {
+  let deleteCalls = 0;
+  let resolveDelete;
+  const deleteStarted = new Promise((resolve) => {
+    resolveDelete = resolve;
+  });
+  const initialState = {
+    version: 1,
+    tab: "knowledge",
+    settings: { brand: "Pending", accent: "#ef7d62", welcome: "Hi" },
+    articles: [],
+    conversations: [],
+    messages: [],
+    documentStatus: {
+      state: "saved",
+      message: "1 indexed document",
+      selectedId: "remote",
+      documents: [{ id: "remote", title: "Remote", source_type: "article", chunk_count: 1 }],
+    },
+  };
+  const { app, context } = createAppContext({
+    localStorage: { "askwell-lite-state": JSON.stringify(initialState) },
+    location: { protocol: "http:" },
+    confirm: () => true,
+    fetch: async (url, options = {}) => {
+      if (String(url).includes("/api/ai/documents/remote") && options.method === "DELETE") {
+        deleteCalls += 1;
+        await deleteStarted;
+        return {
+          ok: true,
+          async json() {
+            return { document_id: "remote", deleted: true };
+          },
+        };
+      }
+      if (String(url).includes("/api/ai/diagnostics")) {
+        return {
+          ok: true,
+          async json() {
+            return { backend: "sqlite", status: "healthy", integrity_check: "ok", documents: [] };
+          },
+        };
+      }
+      return {
+        ok: true,
+        async json() {
+          return { documents: [] };
+        },
+      };
+    },
+  });
+
+  const firstDelete = context.deleteIndexedDocument("remote");
+  await flushAsyncWork();
+  await context.deleteIndexedDocument("remote");
+  assert.equal(deleteCalls, 1);
+  assert.match(app.innerHTML, /Delete Document/);
+  assert.match(app.innerHTML, /disabled/);
+  resolveDelete();
+  await firstDelete;
+  await flushAsyncWork();
+  assert.doesNotMatch(app.innerHTML, /data-select-document="remote"/);
+
+  await context.deleteIndexedDocument("missing");
+  assert.match(app.innerHTML, /Selected document is no longer available/);
 });
 
 test("document update flow preserves stable id and reports updated or unchanged status", async () => {

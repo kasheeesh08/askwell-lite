@@ -138,6 +138,9 @@
             <button class="button secondary" data-reindex-document="${escapeHtml(selectedDocument.id)}" ${pendingIds.has(selectedDocument.id) ? "disabled" : ""}>
               ${icons.reset} Re-index current
             </button>
+            <button class="button danger" data-delete-document="${escapeHtml(selectedDocument.id)}" ${pendingIds.has(selectedDocument.id) ? "disabled" : ""}>
+              ${icons.trash} Delete Document
+            </button>
             ${
               selectedDocument.retryable
                 ? `<button class="button secondary" data-retry-document="${escapeHtml(selectedDocument.id)}" ${pendingIds.has(selectedDocument.id) ? "disabled" : ""}>${icons.reset} Retry</button>`
