@@ -294,10 +294,12 @@
 
   function normalizeDiagnostics(payload) {
     const diagnostics = payload.diagnostics || payload;
+    const integrityCheck = diagnostics.integrity_check || diagnostics.integrityCheck || "";
     return {
       ...diagnostics,
-      status: diagnostics.status || (diagnostics.integrityCheck === "ok" || diagnostics.integrity_check === "ok" ? "healthy" : "checked"),
+      status: diagnostics.status || (integrityCheck === "ok" || integrityCheck === "not-available" ? "healthy" : "checked"),
       backend: diagnostics.backend || "hosted",
+      integrity_check: integrityCheck,
       document_count: diagnostics.document_count ?? diagnostics.documentCount ?? 0,
       chunk_count: diagnostics.chunk_count ?? diagnostics.chunkCount ?? 0,
       embedding_count: diagnostics.embedding_count ?? diagnostics.embeddingCount ?? 0,

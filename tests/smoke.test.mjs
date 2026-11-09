@@ -962,7 +962,7 @@ test("api client fetches AI diagnostics through Node", async () => {
       ok: true,
       async json() {
         if (String(url).includes("/api/ai/diagnostics")) {
-          return { backend: "sqlite", status: "healthy", document_count: 1 };
+          return { backend: "turso-libsql-hosted", documentCount: 1, integrityCheck: "not-available" };
         }
         return { version: 1, settings: {}, articles: [], conversations: [] };
       },
@@ -970,8 +970,10 @@ test("api client fetches AI diagnostics through Node", async () => {
   });
 
   const diagnostics = await context.AskWellApi.getDiagnostics();
-  assert.equal(diagnostics.backend, "sqlite");
+  assert.equal(diagnostics.backend, "turso-libsql-hosted");
   assert.equal(diagnostics.status, "healthy");
+  assert.equal(diagnostics.document_count, 1);
+  assert.equal(diagnostics.integrity_check, "not-available");
 });
 
 test("api client selects hosted mode and sends browser-generated vectors", async () => {

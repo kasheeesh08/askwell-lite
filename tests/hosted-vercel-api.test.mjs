@@ -194,6 +194,35 @@ test("vercel handler requires admin auth for private hosted reads and writes", a
   assert.equal(wrong.body.code, "invalid_admin_auth");
 });
 
+test("vercel handler read-only checks do not create synthetic documents", async () => {
+  const adapter = makeRetrievalAdapter();
+  const handler = createHostedVercelHandler({
+    env: { ASKWELL_ADMIN_TOKEN: adminToken },
+    adapterFactory: () => adapter,
+  });
+  const headers = { "x-askwell-admin-token": adminToken };
+
+  assert.deepEqual(adapter.listDocuments("default"), []);
+  for (const url of [
+    "/api/hosted/health",
+    "/api/hosted/diagnostics",
+    "/api/hosted/workspace",
+    "/api/hosted/documents",
+  ]) {
+    const result = await call(handler, request({ method: "GET", url, headers }));
+    assert.equal(result.status, 200);
+    assert.deepEqual(adapter.listDocuments("default"), [], `${url} must stay read-only`);
+  }
+
+  const created = await call(
+    handler,
+    request({ method: "POST", url: "/api/hosted/ingest", body: ingestPayload({ id: "synthetic-validation" }), headers }),
+  );
+  assert.equal(created.status, 200);
+  assert.equal(adapter.listDocuments("default").length, 1);
+  assert.equal(adapter.listDocuments("default")[0].id, "synthetic-validation");
+});
+
 test("vercel handler accepts hosted sessions and rejects missing CSRF on writes", async () => {
   const store = createMemoryHostedStore();
   const env = { ASKWELL_ADMIN_TOKEN: adminToken, ASKWELL_SESSION_SECRET: "test-secret" };
