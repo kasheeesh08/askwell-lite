@@ -1,106 +1,218 @@
 # AskWell Lite
 
-A free starter inspired by the “coding agents build a SaaS” workflow: a support-chat SaaS cockpit with overview metrics, a knowledge base, conversation triage, agent-style launch audits, widget settings, live preview, export, optional API persistence, optional RAG service integration, and an embeddable widget script.
+<div align="center">
 
-## Features
+**A self-hostable AI customer-support MVP with knowledge-base RAG, persistent customer conversations, and a private hosted demo path.**
 
-- Support cockpit with launch score, source-match rate, readiness checks, and recent questions.
-- Knowledge base with local article creation, delete controls, search, and source-backed answers.
-- Document management UI for indexed document details, re-indexing, replacement-content updates, operation status, and deletion.
-- Inbox with open/resolved conversation states.
-- Agent build room that simulates a lead/builder/QA audit for the static MVP.
-- Widget settings for brand, accent color, and welcome message.
-- JSON workspace export for articles, conversations, and settings.
-- Standalone `askwell-widget.js` script for embedding on another static page.
-- Optional Node server with API persistence, security headers, rate limiting, health checks, and bounded payload sanitization.
-- Optional Python FastAPI AI service for local RAG experiments.
-- No database or paid AI key required for the core static app.
+[![Tests](https://github.com/kasheeesh08/askwell-lite/actions/workflows/test.yml/badge.svg)](https://github.com/kasheeesh08/askwell-lite/actions/workflows/test.yml)
+![Node.js](https://img.shields.io/badge/Node.js-22.x-1f6b4a)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Status](https://img.shields.io/badge/status-MVP%20private%20demo-orange)
 
-## Run locally
+</div>
 
-Open `index.html` in a browser. No package install is required.
+AskWell Lite started as a static support-chat starter and has grown into a compact customer-support SaaS prototype: a dashboard, editable knowledge base, hosted document indexing, retrieval-augmented answers with citations, persistent customer conversations, and an agent inbox. It is intentionally small enough to inspect end to end, while still exercising the pieces that make a real support product meaningful.
 
-For a local development server:
+The project supports two operating modes:
 
-```bash
-NODE_ENV=development npm start
+- **Local full RAG:** Node.js dashboard plus an optional Python FastAPI AI service with Sentence Transformers and SQLite vector storage.
+- **Hosted private demo:** Vercel serverless routes, Turso/libSQL persistence, browser-side embeddings, HttpOnly session authentication, and extractive grounded answers.
+
+It is not marketed as public production infrastructure. It is an MVP/private-demo implementation with documented limits, regression tests, and a conservative upgrade path.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/overview.png" alt="AskWell Lite overview dashboard with live widget preview" />
+      <br />
+      <sub><strong>Overview dashboard</strong> - workspace metrics, readiness checks, and live customer widget preview.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/knowledge-base.png" alt="Knowledge base with indexed articles and document management" />
+      <br />
+      <sub><strong>Knowledge base</strong> - article management, indexing status, diagnostics, and document details.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/customer-chat.png" alt="Customer chat showing a grounded answer with a source citation" />
+      <br />
+      <sub><strong>Customer chat</strong> - a grounded answer rendered with source attribution.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/evidence-abstention.png" alt="Customer chat showing an insufficient evidence response" />
+      <br />
+      <sub><strong>Evidence abstention</strong> - unsupported questions receive an honest fallback instead of fabricated answers.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/agent-inbox.png" alt="Agent inbox with a customer conversation and transcript" />
+      <br />
+      <sub><strong>Agent inbox</strong> - persistent conversations with customer, assistant, and agent messages.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/agent-reply.png" alt="Conversation showing a human agent reply" />
+      <br />
+      <sub><strong>Agent reply</strong> - human replies appear with distinct attribution in the support workflow.</sub>
+    </td>
+  </tr>
+</table>
+
+## What It Does
+
+- Manage support knowledge articles with create, edit, delete, search, import, export, and reset flows.
+- Index workspace articles into a RAG knowledge base with per-article status, retryable failures, unchanged-content detection, and stable document IDs.
+- Inspect indexed documents, chunk counts, content hashes, storage health, and diagnostics without exposing internal database paths.
+- Answer customer questions with BM25, semantic retrieval, hybrid ranking, evidence sufficiency checks, grounded extractive generation, citations, and abstention.
+- Persist customer conversations and message history separately from indexed knowledge documents.
+- Provide an agent inbox with filters, chronological transcripts, agent replies, resolve/reopen actions, and sender attribution.
+- Support a standalone embeddable widget script plus the in-app live widget preview.
+- Protect hosted dashboard and document operations with server-side private-demo sessions, HttpOnly cookies, CSRF checks, and server-only secrets.
+- Keep local development working without cloud services, paid AI calls, or production data.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Browser[Browser UI and Widget] --> Static[Static HTML, CSS, JS]
+  Browser --> HostedApi[Vercel API Routes]
+  HostedApi --> Session[HttpOnly Session + CSRF]
+  HostedApi --> Turso[Turso / libSQL]
+  Browser --> BrowserEmbed[Browser Embeddings<br/>Xenova/all-MiniLM-L6-v2]
+  BrowserEmbed --> HostedApi
+
+  LocalBrowser[Local Browser] --> Node[Node.js server.mjs]
+  Node --> WorkspaceJson[data/workspace.json]
+  Node --> FastAPI[Python FastAPI AI Service]
+  FastAPI --> PyEmbed[Sentence Transformers<br/>all-MiniLM-L6-v2]
+  FastAPI --> SQLite[SQLite vector store]
 ```
 
-PowerShell:
+The same product surface is kept intentionally plain: no React, no bundler, and no hidden managed backend. Browser modules live under `src/`, local server behavior lives in `server.mjs`, hosted serverless behavior lives in `api/` and `src/hosted/`, and the optional local AI service lives in `ai-service/`.
+
+## RAG Pipeline
+
+```mermaid
+flowchart TD
+  Article[Workspace article] --> Normalize[Normalize and validate]
+  Normalize --> Chunk[Chunk content]
+  Chunk --> Embed[Generate 384d normalized embeddings]
+  Embed --> Store[Persist document, chunks, embeddings]
+  Question[Customer question] --> Retrieve[BM25 + semantic + hybrid retrieval]
+  Retrieve --> Gate[Evidence sufficiency gate]
+  Gate -->|sufficient| Answer[Extractive answer]
+  Gate -->|insufficient| Abstain[Insufficient evidence response]
+  Answer --> Cite[Validate citations against retrieved chunks]
+```
+
+Implemented RAG behavior includes:
+
+- Document ingestion with chunking, metadata, content hashes, duplicate detection, unchanged-document skipping, updates, deletion, and chunk/embedding cleanup.
+- Local semantic embeddings through `sentence-transformers/all-MiniLM-L6-v2` in the Python service.
+- Hosted browser embeddings through `Xenova/all-MiniLM-L6-v2` with `quantized: false`, 384 dimensions, mean pooling, and normalized vectors.
+- BM25 retrieval, semantic vector retrieval, and hybrid Reciprocal Rank Fusion.
+- Evidence sufficiency and abstention logic that uses lexical support, semantic relevance, retrieval agreement, query coverage, ambiguity checks, and conflict handling.
+- Citation validation so displayed source references must come from retrieved evidence.
+
+The hosted browser/Python embedding parity work showed strong compatibility for the tested English support-content corpus. Mixed-script Unicode parity was not established, so multilingual claims are intentionally avoided.
+
+## Customer Support Flow
+
+```mermaid
+sequenceDiagram
+  participant Customer
+  participant Widget
+  participant API
+  participant Store as Turso/SQLite
+  participant Inbox as Agent Inbox
+
+  Customer->>Widget: Ask a question
+  Widget->>API: Create/reuse conversation
+  API->>Store: Persist customer message
+  API->>Store: Retrieve indexed chunks
+  API-->>Widget: Grounded answer or abstention
+  API->>Store: Persist assistant message
+  Inbox->>API: Load conversation
+  Inbox->>API: Send agent reply
+  API->>Store: Persist agent message
+  Widget->>API: Refresh conversation
+  API-->>Widget: Show human agent reply
+```
+
+Customer conversations are stored separately from the knowledge base. Messages keep sender type (`customer`, `assistant`, `agent`), position, timestamps, conversation status, visitor identity, and workspace association. The current implementation supports conversation creation, message persistence, agent replies, resolve/reopen, and returning-visitor continuity through non-sensitive browser identifiers.
+
+## Technology Stack
+
+- **Frontend:** HTML, CSS, plain JavaScript modules.
+- **Local backend:** Node.js HTTP server with static allowlisting, JSON workspace persistence, versioned saves, security headers, and optional FastAPI proxying.
+- **Hosted backend:** Vercel serverless functions grouped to stay under the Hobby function limit.
+- **Hosted storage:** Turso/libSQL through `@libsql/client`.
+- **Local RAG service:** Python FastAPI, NumPy, Sentence Transformers, SQLite, and pytest.
+- **Embeddings:** `sentence-transformers/all-MiniLM-L6-v2` locally; `Xenova/all-MiniLM-L6-v2` in the browser-hosted path.
+- **Tests:** Node's built-in test runner plus focused browser automation through Microsoft Edge/Chromium CDP when available.
+
+## Repository Map
+
+```text
+.
+|-- api/                         # Vercel serverless entry points
+|-- ai-service/                  # Optional local FastAPI RAG service
+|-- docs/                        # Architecture notes, reports, and screenshots
+|-- scripts/                     # Evaluation and browser-integration scripts
+|-- src/
+|   |-- app.js                   # Frontend bootstrap and routing
+|   |-- api.js                   # Browser API client
+|   |-- state.js                 # Frontend state and workflows
+|   |-- hosted/                  # Hosted storage, routing, sessions, retrieval
+|   |-- render/                  # Page renderers
+|   `-- utils/                   # Escaping and validation
+|-- tests/                       # Node regression suites
+|-- askwell-widget.js            # Standalone embeddable widget
+|-- index.html
+|-- server.mjs                   # Local/self-hosted Node server
+`-- styles.css
+```
+
+## Run Locally
+
+Install Node dependencies:
 
 ```powershell
-$env:NODE_ENV = "development"; npm start
+npm ci
 ```
 
-Then open `http://127.0.0.1:4173`.
-
-The server stores workspace data in `data/workspace.json`, which is intentionally ignored by Git.
-
-## Production Mode
-
-`server.mjs` is a dependency-free Node server for self-hosting. It serves the app and exposes:
-
-- `GET /api/health` for uptime and storage checks.
-- `GET /api/workspace` for loading settings, articles, and conversations.
-- `PUT /api/workspace` for persisting workspace changes.
-- `GET /api/export` for a JSON export.
-- `GET /api/ai/health` for optional AI service status.
-- `POST /api/ai/ingest` for indexing current workspace articles or supplied documents.
-- `GET /api/ai/documents` for indexed document metadata.
-- `GET /api/ai/diagnostics` for read-only storage and indexing diagnostics.
-- `DELETE /api/ai/documents/:id` for deleting one indexed document and its chunks.
-- `POST /api/ai/answer` for asking the configured AI service.
-
-Production protection:
-
-```bash
-NODE_ENV=production ASKWELL_ADMIN_TOKEN=replace-with-a-long-random-token npm start
-```
-
-Outside `NODE_ENV=development`, the server refuses to start unless `ASKWELL_ADMIN_TOKEN` is configured with a non-placeholder value of at least 16 characters. Protected API calls must include the `X-AskWell-Admin-Token` header. Use `NODE_ENV=development npm start` only for local demos.
-In the app, open Install -> Widget settings and enter the same server admin token once. It is saved only in the browser's local storage and is not included in workspace exports.
-
-The production server intentionally serves only the public application assets: `index.html`, `styles.css`, the allowlisted `src/*.js` frontend modules, and `askwell-widget.js`. Internal files such as `.git`, `data`, `.env`, `server.mjs`, `tests`, `.github`, package metadata, and `ai-service` internals are blocked.
-
-Production reads that expose workspace or indexed-document data are protected too: `/api/workspace`, `/api/export`, `/api/ai/documents`, and `/api/ai/diagnostics` require the admin token outside development mode. `/api/config` is intentionally public but sanitized; it reports booleans and safe operational settings, never tokens or secrets.
-
-Recommended production environment:
+Run the local dashboard:
 
 ```powershell
-$env:NODE_ENV = "production"
-$env:PORT = "4173"
-$env:ASKWELL_ADMIN_TOKEN = "<long random admin token>"
-$env:ASKWELL_ALLOWED_HOSTS = "support.example.com"
-$env:ASKWELL_AI_SERVICE_URL = "http://127.0.0.1:8001"
-$env:ASKWELL_AI_SERVICE_TOKEN = "<long random node-to-ai token>"
+$env:NODE_ENV = "development"
 npm start
 ```
 
-`ASKWELL_ALLOWED_HOSTS` is a comma-separated host-header allowlist. If it is omitted in production, only `localhost`, `127.0.0.1`, and `::1` are allowed. AskWell does not emit permissive CORS headers; deploy it same-origin or behind a trusted reverse proxy.
-
-The Node server forwards `ASKWELL_AI_SERVICE_TOKEN` to FastAPI as `X-AskWell-AI-Token` when configured. Expensive AI answer and ingestion endpoints have additional per-IP rate limits on top of the global API limit.
-
-See `.env.example` for a copyable configuration template and `docs/release-readiness-checklist.md` for the release checklist.
-
-## Optional RAG Service
-
-Phase 3 adds a separate Python FastAPI service in `ai-service/`. The browser never talks to it directly. The path is:
+Open:
 
 ```text
-Browser / widget -> Node server -> Python FastAPI AI service
+http://127.0.0.1:4173
 ```
 
-Install and run it locally:
+The local Node server stores workspace state in `data/workspace.json`, which is intentionally ignored by Git. Static-only use also works by opening `index.html`, but server mode is the better path for persistence and API testing.
+
+## Optional Local AI Service
+
+The Python service is optional for local full-RAG validation.
 
 ```powershell
 cd ai-service
-python -m venv .venv
-.\.venv\Scripts\activate
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn app.main:app --host 127.0.0.1 --port 8001
+$env:PYTHONPATH = "."
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-In another terminal, point the Node server at it:
+In another terminal:
 
 ```powershell
 $env:NODE_ENV = "development"
@@ -108,263 +220,155 @@ $env:ASKWELL_AI_SERVICE_URL = "http://127.0.0.1:8001"
 npm start
 ```
 
-For a controlled production-style run with a private service token:
+Optional protected service-to-service mode:
 
 ```powershell
 $env:ASKWELL_AI_REQUIRE_TOKEN = "1"
-$env:ASKWELL_AI_SERVICE_TOKEN = "<long random node-to-ai token>"
-ai-service\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir ai-service --host 127.0.0.1 --port 8001
+$env:ASKWELL_AI_SERVICE_TOKEN = "<long random token>"
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-Start Node with the same `ASKWELL_AI_SERVICE_TOKEN`. Keep the FastAPI port bound to `127.0.0.1` or a private network unless an upstream gateway provides equivalent protection.
+The browser never calls the local Python service directly.
 
-Then ingest the current workspace articles:
+## Hosted Private Demo
 
-```powershell
-Invoke-RestMethod -Method Post http://127.0.0.1:4173/api/ai/ingest -ContentType "application/json" -Body "{}"
-```
+The hosted architecture is designed for a zero-cost private demo using Vercel Hobby and Turso Free, subject to each provider's current account and quota rules. It uses browser-side embeddings so the deployed app does not need to run Python, PyTorch, or Sentence Transformers on Vercel.
 
-Document lifecycle operations stay behind the Node server:
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:4173/api/ai/documents
-Invoke-RestMethod -Method Delete http://127.0.0.1:4173/api/ai/documents/article-id
-```
-
-The browser never calls the Python service directly. In production, ingestion and deletion require the same `X-AskWell-Admin-Token` write protection as workspace saves.
-
-The Knowledge page can inspect indexed documents, show chunk counts and content hashes, re-index existing article documents, and submit replacement content through the same ingestion API while preserving the stable document ID.
-
-It also includes a compact diagnostics card for storage health, backend type, counts, integrity status, and attention-required documents. Diagnostics are read-only and do not repair, migrate, delete, or rewrite storage. Retry actions reuse the same ingestion flow and only run when source content is still available in the workspace.
-
-The AI service implements:
-
-- Document normalization and chunking with overlap.
-- Existing AskWell article ingestion.
-- TXT, Markdown, PDF, and DOCX extraction through the ingestion layer.
-- Content hashes, duplicate detection, and unchanged-document skips.
-- Sentence Transformers embeddings for real local semantic vectors.
-- SQLite vector storage by default, with a hardened JSON storage backend still available for development or recovery.
-- BM25 retrieval, semantic vector retrieval, and hybrid Reciprocal Rank Fusion.
-- A reranking interface with a no-op MVP implementation.
-- A provider-independent generation interface.
-- An explicit free `extractive` generator that answers only from retrieved chunks and cites actual chunk IDs.
-- Optional OpenAI-compatible LLM generation with grounded prompts, timeout/retry handling, token usage tracking, and server-side citation validation.
-
-The default AI service requires `sentence-transformers` from `ai-service/requirements.txt` for production embeddings. The automated Python tests inject a deterministic lexical embedding provider so tests do not download models or require paid LLM access. LLM provider tests use mocked HTTP responses by default; real provider calls are opt-in.
-
-### AI Environment Variables
-
-- `ASKWELL_AI_SERVICE_URL`: Node-to-Python service URL.
-- `ASKWELL_AI_TIMEOUT_MS`: Node proxy timeout, default `8000`.
-- `ASKWELL_EMBEDDING_MODEL`: Sentence Transformers model.
-- `ASKWELL_AI_DATA_DIR`: AI vector store directory.
-- `ASKWELL_CHUNK_SIZE`: chunk size.
-- `ASKWELL_CHUNK_OVERLAP`: chunk overlap.
-- `ASKWELL_BM25_SCORE_THRESHOLD`: strong keyword evidence threshold, default `3.0`.
-- `ASKWELL_SEMANTIC_SCORE_THRESHOLD`: strong semantic evidence threshold, default `0.38`.
-- `ASKWELL_HYBRID_SCORE_THRESHOLD`: minimum hybrid support threshold, default `0.02`.
-- `ASKWELL_SEMANTIC_MARGIN_THRESHOLD`: minimum gap between the top two semantic matches, default `0.08`.
-- `ASKWELL_QUERY_COVERAGE_THRESHOLD`: minimum query-token coverage in retrieved evidence for keyword-led answers, default `0.45`.
-- `ASKWELL_MIN_EVIDENCE_CHUNKS`: minimum supporting retrieved chunks, default `1`.
-- `ASKWELL_MIN_RETRIEVAL_AGREEMENT`: minimum overlap between retrieval signals, default `1`.
-- `ASKWELL_LLM_PROVIDER`: `extractive` by default. Use `openai` or `openai-compatible` for hosted LLM generation.
-- `ASKWELL_LLM_API_KEY`: server-side provider key. It is never exported to the browser workspace.
-- `ASKWELL_LLM_MODEL`: provider model name, default `gpt-4o-mini`.
-- `ASKWELL_LLM_BASE_URL`: OpenAI-compatible API base URL, default `https://api.openai.com/v1`.
-- `ASKWELL_LLM_TIMEOUT_SECONDS`: generation timeout, default `20`.
-- `ASKWELL_LLM_RETRIES`: retries for transient provider failures and rate limits, default `2`.
-- `ASKWELL_LLM_MAX_OUTPUT_TOKENS`: maximum generated answer tokens, default `350`.
-
-To enable real LLM answers locally:
-
-```powershell
-$env:ASKWELL_LLM_PROVIDER = "openai-compatible"
-$env:ASKWELL_LLM_API_KEY = "sk-..."
-$env:ASKWELL_LLM_MODEL = "gpt-4o-mini"
-uvicorn app.main:app --host 127.0.0.1 --port 8001
-```
-
-The LLM is called only after retrieval finds sufficient evidence. Generated citations are accepted only when they reference retrieved chunk IDs, so fabricated citation IDs fail safely instead of being displayed as real sources.
-
-### AI Evaluation
-
-The reproducible starter evaluation fixture is in `ai-service/evaluation/fixtures.json`. It contains synthetic support articles and labeled questions for answerable, paraphrased, ambiguous, multi-source, and unanswerable cases; it is not customer data. The Python test suite covers ingestion, persisted embeddings, BM25 retrieval, semantic retrieval, hybrid retrieval, grounded citations, insufficient-context fallback, deterministic retrieval metrics, mocked LLM success/failure paths, rate-limit handling, malformed provider responses, timeout behavior, and citation validation. Automated tests check mechanics and citation correctness; they do not prove answer faithfulness without human review.
-
-Generate the calibrated Phase 3.2.2 evaluation report:
-
-```powershell
-$env:PYTHONPATH = "ai-service"
-ai-service\.venv\Scripts\python.exe -m app.evaluation.report --embedding-provider real
-```
-
-The report is written to `ai-service/evaluation/phase-3.2.2-report.json` and compares against the preserved Phase 3.2.1 baseline when available. It uses the synthetic corpus, records retrieval metrics for BM25, semantic search, and hybrid RRF, and runs deterministic generation/failure checks. Live OpenAI-compatible validation is included only when `ASKWELL_LLM_PROVIDER` and `ASKWELL_LLM_API_KEY` are configured in the shell; secrets are not written to the report.
-
-The evidence gate intentionally does not treat RRF scores as calibrated probabilities. A question must have strong keyword or semantic evidence, retrieval support, and enough query coverage to avoid answering partially relevant unsupported questions.
-
-Generate the Phase 3.2.3 live-provider validation report:
-
-```powershell
-$env:PYTHONPATH = "ai-service"
-ai-service\.venv\Scripts\python.exe -m app.evaluation.live_provider_report --embedding-provider real
-```
-
-The report is written to `ai-service/evaluation/phase-3.2.3-live-llm-report.json`. It runs a small fixed scenario set and records actual provider results only when `ASKWELL_LLM_PROVIDER`, `ASKWELL_LLM_MODEL`, `ASKWELL_LLM_BASE_URL`, and `ASKWELL_LLM_API_KEY` are configured. For synthetic evaluation cases, the report may include generated answer text and retrieved evidence snippets to support quality debugging. The API key is never written to the report.
-
-Known limitations:
-
-- The current app is still single-workspace.
-- The JSON vector store is an MVP storage layer, not pgvector.
-- Document lifecycle management is synchronous. There is no background queue, retry dashboard, or raw uploaded-file storage.
-- Replacement-content updates are typed into the UI; AskWell does not retain original uploaded files for later editing.
-- The default `extractive` generator is not a hosted LLM. It is intentionally explicit so AskWell does not silently fake model output.
-- Hosted LLM generation can cost money and depends on the configured provider's availability, latency, and rate limits.
-- Real LLM integration tests are skipped unless explicitly enabled with provider credentials.
-- PDF extraction requires `pypdf`; DOCX extraction uses built-in ZIP/XML parsing for basic `.docx` text.
-- No multi-tenant isolation, RBAC, support inbox automation, or analytics pipeline has been added yet.
-
-## Persistence Architecture
-
-In server mode, workspace data is stored as JSON in `data/workspace.json`.
-
-The server protects that file with:
-
-- Atomic writes: data is written to a temporary file in the same directory, flushed, then renamed into place.
-- Temporary-file cleanup after failed writes.
-- Versioned updates: every workspace has a numeric `version`.
-- Conflict detection: clients must send `expectedVersion` when saving.
-- In-process write queueing so simultaneous saves are serialized inside one running Node process.
-- Corruption protection: corrupted JSON is never silently replaced with seed data.
-
-Initial seed data is written only when `data/workspace.json` does not exist.
-
-## Backup and Restore
-
-Back up the Node workspace and AI index while services are stopped. The SQLite store uses WAL mode, so copy the database file family, not only the main `.sqlite3` file:
-
-```powershell
-New-Item -ItemType Directory -Force backups
-Copy-Item data\workspace.json backups\workspace.json
-Copy-Item ai-service\data\askwell-vectors.sqlite3* backups\
-```
-
-Restore into a fresh or stopped deployment:
-
-```powershell
-Copy-Item backups\workspace.json data\workspace.json
-Copy-Item backups\askwell-vectors.sqlite3* ai-service\data\
-```
-
-After restore, start FastAPI and Node, then check `/api/health`, `/api/ai/health`, and `/api/ai/diagnostics`. The diagnostics endpoint is read-only; it will not repair or rewrite storage by itself.
-
-### Workspace Versioning
-
-`GET /api/workspace` returns the current workspace, including:
-
-```json
-{
-  "version": 1
-}
-```
-
-`PUT /api/workspace` must include:
-
-```json
-{
-  "expectedVersion": 1,
-  "settings": {},
-  "articles": [],
-  "conversations": []
-}
-```
-
-If the submitted version is stale, the server returns:
+Required hosted environment variable names:
 
 ```text
-409 Conflict
+ASKWELL_HOSTED_MODE=1
+ASKWELL_ADMIN_TOKEN=<private demo access credential>
+ASKWELL_SESSION_SECRET=<long random signing secret>
+TURSO_DATABASE_URL=<server-side libSQL URL>
+TURSO_AUTH_TOKEN=<server-side Turso token>
 ```
 
-with the latest version and workspace. The browser app then reloads the latest server workspace and shows a conflict save state instead of silently overwriting newer data.
+Security rules:
 
-### Corruption Recovery
+- The admin token and Turso token are server-side only.
+- `/api/config` returns sanitized booleans and safe configuration only.
+- Private hosted routes require a signed HttpOnly session cookie.
+- State-changing hosted requests require CSRF validation.
+- The private demo login exchanges the access credential for a short-lived session; it does not store the admin token in `localStorage` or frontend bundles.
 
-If `data/workspace.json` becomes corrupted, the server returns a meaningful error and leaves the corrupted file untouched.
+Hosted mode currently uses five Vercel functions:
 
-Safe recovery procedure:
+```text
+api/config.mjs
+api/workspace.mjs
+api/auth.mjs
+api/ai.mjs
+api/conversations.mjs
+```
 
-1. Stop the server.
-2. Copy `data/workspace.json` somewhere safe for inspection.
-3. Repair the JSON manually or replace it with a known-good export.
-4. Restart the server.
+`vercel.json` rewrites nested auth, AI, and conversation paths into those grouped handlers so the project stays under the Vercel Hobby function limit.
 
-If you intentionally want to reset the workspace, stop the server, remove `data/workspace.json`, and restart. The seed workspace will be recreated only because the file is missing.
+## Configuration
 
-### Persistence Limitations
+See `.env.example` for a copyable template. Important variables include:
 
-- JSON persistence is reliable enough for a small self-hosted MVP, not for high-volume production.
-- Concurrency protection is in-process only. Multiple Node processes writing the same file are not supported.
-- There is no cross-machine locking.
-- There are no automatic backups yet.
-- PostgreSQL is still the recommended next persistence step for real multi-user production.
+```text
+NODE_ENV
+PORT
+ASKWELL_ADMIN_TOKEN
+ASKWELL_ALLOWED_HOSTS
+ASKWELL_AI_SERVICE_URL
+ASKWELL_AI_SERVICE_TOKEN
+ASKWELL_HOSTED_MODE
+ASKWELL_SESSION_SECRET
+TURSO_DATABASE_URL
+TURSO_AUTH_TOKEN
+ASKWELL_LLM_PROVIDER
+ASKWELL_LLM_MODEL
+ASKWELL_LLM_BASE_URL
+ASKWELL_LLM_API_KEY
+```
 
-## Test
+LLM provider integration exists behind the Python AI service's provider interface, but live provider tests are opt-in. The default and hosted demo path are cost-conscious and do not require paid LLM calls.
 
-This repo uses Node's built-in test runner, so no dependencies are needed.
+## Testing and Evaluation
 
-```bash
+Core checks:
+
+```powershell
 npm run check
 npm test
 ```
 
-Python RAG tests:
+Browser integration harness:
+
+```powershell
+npm run test:browser
+```
+
+Hosted retrieval evaluation:
+
+```powershell
+node scripts/hosted-retrieval-eval.mjs
+```
+
+Python service tests:
 
 ```powershell
 $env:PYTHONPATH = "ai-service"
 pytest ai-service/tests -q
 ```
 
-The smoke suite verifies the cockpit render, add/delete/search article flows, chat answering, AI citation display, AI fallback behavior, inbox status updates, agent audit, settings, install snippet escaping, responsive/delete CSS rules, standalone widget boot flow, server workspace sanitization, atomic writes, failed-write recovery, corrupted JSON handling, initial workspace creation, version conflicts, concurrent updates, frontend save failure/conflict states, HTTP static-file restrictions, AI bridge proxy behavior, protected writes, invalid JSON handling, and security headers.
+Recent tracked regression baselines include:
 
-## Deploy on GitHub Pages
+- Node checks passing.
+- Node tests passing with the hosted route, storage, retrieval, embedding-parity, conversation, inbox, and smoke suites.
+- Browser integration passing locally with Microsoft Edge/Chromium CDP in an environment that allows browser automation.
+- Hosted retrieval evaluation passing on the synthetic fixture with answerable responses, abstention checks, and citation validation.
+- Phase 6D production work verified the core private-demo flow after deployment fixes, while still documenting that public production readiness is not claimed.
 
-1. Push this folder to a GitHub repository.
-2. Open the repository settings.
-3. Go to Pages.
-4. Choose Deploy from a branch.
-5. Select the `main` branch and `/root` folder.
-6. Save, then wait for GitHub Pages to publish the site.
+The evaluation datasets are small and synthetic. They are useful for regression control and implementation confidence, not proof of broad production quality.
 
-The `.nojekyll` file keeps GitHub Pages from applying Jekyll processing to the static app.
+## Security Notes
 
-## What is free
+AskWell Lite includes practical MVP hardening:
 
-- Static app hosting on GitHub Pages, Netlify, or Cloudflare Pages free tiers.
-- Browser-only knowledge base storage with `localStorage`.
-- Self-hosted Node persistence with `data/workspace.json`.
-- Simple retrieval answers without an AI API key.
-- Embeddable widget script in `askwell-widget.js`.
-- Local JSON export for moving the workspace data later.
+- Explicit static-asset allowlisting in local server mode.
+- Blocked access to internal files such as `.git`, `data`, `.env`, `server.mjs`, tests, package files, and private folders.
+- CSP, `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy` headers.
+- Malformed JSON and invalid request body handling.
+- Versioned workspace writes and conflict handling.
+- Server-only hosted credentials.
+- Signed HttpOnly hosted sessions with expiry.
+- CSRF checks for mutating hosted requests.
+- Workspace isolation in storage APIs.
 
-## What costs money later
+Known security and reliability limitations:
 
-- Hosted AI APIs such as OpenAI, Anthropic, Gemini, or Groq beyond their free tier.
-- Managed database, auth, email, analytics, and custom domain services.
-- Production monitoring and higher traffic hosting.
+- Hosted rate limiting is still lightweight and instance-local.
+- The private demo is single-owner; full auth, RBAC, account recovery, and audit trails are future work.
+- Backup and restore for hosted Turso are operational tasks, not automated product features yet.
+- Browser-side embedding requires downloading model assets from allowed CDN/model origins.
 
-## Upgrade path
+## Current Limitations
 
-1. Move article and conversation storage from `localStorage` to a database.
-2. Replace the simple admin token with real authentication for workspace owners.
-3. Replace the browser retrieval function in `src/app.js` with a server model route.
-4. Keep model API keys only on the server.
-5. Deploy the dashboard and widget script from the same domain.
+- The hosted demo is not a public multi-tenant SaaS.
+- No Stripe billing, email, notification, analytics, assignment queue, or SLA workflow is included.
+- Real LLM generation is optional and can cost money depending on provider configuration.
+- The default hosted answer generation is extractive and grounded; it is intentionally conservative.
+- Mixed-script multilingual embedding parity is not established.
+- Browser model loading and caching must be verified in the target deployed browser/network environment.
+- The app preserves raw workspace articles but does not store original uploaded files for later binary reprocessing.
 
-## Files
+## Why This Repo Is Useful
 
-- `index.html` is the app entry point.
-- `styles.css` contains the responsive dashboard and widget preview styling.
-- `src/` contains modular frontend state, API, retrieval, rendering, escaping, and validation code.
-- `askwell-widget.js` is the drop-in widget script for other pages.
-- `server.mjs` is the optional production-style Node server.
-- `ai-service/` contains the optional FastAPI RAG service.
-- `tests/smoke.test.mjs` contains the no-dependency smoke suite.
+AskWell Lite is meant to be a credible portfolio project because it goes beyond a pretty static mockup:
+
+- It has real persistence paths.
+- It has indexing, deletion, update, and diagnostics flows.
+- It has retrieval quality tests and evidence-gated abstention.
+- It has private hosted auth instead of public dashboard access.
+- It connects customer chat to a persistent support inbox.
+- It documents trade-offs honestly instead of pretending to be a finished enterprise platform.
+
+That makes it a strong foundation for the next upgrades: durable rate limiting, proper user accounts, team workspaces, richer analytics, queueing for ingestion, and production observability.
+
+## License
+
+MIT
