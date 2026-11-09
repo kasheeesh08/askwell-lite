@@ -49,6 +49,8 @@
     const indexedById = new Map(documents.map((document) => [document.id, document]));
     const pendingIds = new Set(pendingDocumentIds);
     const validArticleCount = state.articles.filter(validArticle).length;
+    const indexedArticleCount = state.articles.filter((article) => indexedById.has(article.id)).length;
+    const unindexedArticleCount = Math.max(validArticleCount - indexedArticleCount, 0);
     const anyIndexing = pendingDocumentIds.length > 0;
     const diagnostics = status.diagnostics && typeof status.diagnostics === "object"
       ? status.diagnostics
@@ -59,8 +61,9 @@
       ? state.articles.find((article) => article.id === selectedDocument.id)
       : null;
     const updateTags = selectedArticle?.tags || selectedDocument?.metadata?.tags || [];
+    const privateDemoSessionRequired = needsPrivateDemoSession(status, runtimeConfig);
     const privateDemoSignIn =
-      needsPrivateDemoSession(status, runtimeConfig)
+      privateDemoSessionRequired
         ? `
           <form class="private-demo-form" data-private-demo-login>
             <div>
@@ -97,13 +100,33 @@
       .join("");
 
     const retryable = documents.filter((document) => document.retryable);
+    const indexingOnboarding = validArticleCount
+      ? `
+        <section class="index-onboarding ${documents.length ? "" : "empty-index"}">
+          <div>
+            <strong>${documents.length ? "Article indexing" : "Index your articles to enable answers"}</strong>
+            <span>${indexedArticleCount}/${validArticleCount} article${validArticleCount === 1 ? "" : "s"} indexed${unindexedArticleCount ? ` - ${unindexedArticleCount} still need${unindexedArticleCount === 1 ? "s" : ""} indexing` : ""}.</span>
+          </div>
+          <button class="button secondary" data-index-all-documents ${anyIndexing || !unindexedArticleCount ? "disabled" : ""}>
+            ${icons.activity} ${documents.length ? "Index remaining" : "Index all articles"}
+          </button>
+        </section>
+      `
+      : `
+        <section class="index-onboarding empty-index">
+          <div>
+            <strong>No articles ready to index</strong>
+            <span>Add an article with a title and answer, then index it into the hosted knowledge base.</span>
+          </div>
+        </section>
+      `;
     const diagnosticsPanel = `
       <section class="diagnostics-card ${escapeHtml(status.diagnosticsState || "idle")}">
         <div>
           <strong>${escapeHtml(status.diagnosticsMessage || "Diagnostics not checked")}</strong>
           <span>${diagnostics ? `${escapeHtml(diagnostics.backend || "unknown")} / ${escapeHtml(diagnostics.status || "unknown")}` : "Storage status unavailable"}</span>
         </div>
-        <button class="button secondary" data-refresh-diagnostics>${icons.activity} Check</button>
+        <button class="button secondary" data-refresh-diagnostics ${status.diagnosticsState === "loading" ? "disabled" : ""}>${icons.activity} Check</button>
         ${
           diagnostics
             ? `<dl>
@@ -256,6 +279,7 @@
           <div class="panel-header"><h2>Document management</h2><span class="tag">${documents.length} indexed</span></div>
           <div class="panel-body">
             ${privateDemoSignIn}
+            ${privateDemoSessionRequired ? "" : indexingOnboarding}
             ${diagnosticsPanel}
             <div class="document-list ${status.state === "loading" ? "loading" : ""}">
               ${

@@ -163,6 +163,13 @@
       : error?.payload?.error || error?.message || "Private demo sign-in required.";
   }
 
+  function errorMessage(error, fallback) {
+    if (typeof api.errorMessageFromPayload === "function") {
+      return api.errorMessageFromPayload(error?.payload, error?.message || fallback);
+    }
+    return error?.message || fallback;
+  }
+
   function setDocumentStatus(update) {
     const current = state.documentStatus || defaultState.documentStatus;
     const next = {
@@ -467,12 +474,13 @@
           ...statusById,
         },
       });
-      refreshDocuments({ preserveMessage: true });
+      await refreshDocuments({ preserveMessage: true });
+      await refreshDiagnostics();
     } catch (error) {
       candidates.forEach((article) => setDocumentPending(article.id, false));
       const message = hostedAuthRequired(error)
         ? hostedAuthMessage(error)
-        : error.payload?.error || error.message || "Indexing failed";
+        : errorMessage(error, "Indexing failed");
       const failedResults = Object.fromEntries(
         candidates.map((article) => [
           article.id,
@@ -515,7 +523,7 @@
         state: "failed",
         message: hostedAuthRequired(error)
           ? hostedAuthMessage(error)
-          : error.payload?.error || error.message || "Could not load index metadata",
+          : errorMessage(error, "Could not load index metadata"),
       });
     }
   }
@@ -542,7 +550,7 @@
       } catch (error) {
         const message = hostedAuthRequired(error)
           ? hostedAuthMessage(error)
-          : error.payload?.error || error.message || "Diagnostics unavailable";
+          : errorMessage(error, "Diagnostics unavailable");
         setDocumentStatus({
           diagnostics: {
             backend: api.isHostedMode() ? "hosted" : "unknown",
@@ -649,7 +657,7 @@
         state: "failed",
         message: hostedAuthRequired(error)
           ? hostedAuthMessage(error)
-          : error.payload?.error || error.message || "Delete failed",
+          : errorMessage(error, "Delete failed"),
       });
     }
   }
@@ -728,7 +736,7 @@
         state: "failed",
         message: hostedAuthRequired(error)
           ? hostedAuthMessage(error)
-          : error.payload?.error || error.message || "Re-index failed",
+          : errorMessage(error, "Re-index failed"),
       });
     }
   }
@@ -754,7 +762,7 @@
           state: "failed",
           message: hostedAuthRequired(error)
             ? hostedAuthMessage(error)
-            : error.payload?.error || error.message || "Delete failed",
+            : errorMessage(error, "Delete failed"),
         });
         return;
       }
@@ -830,7 +838,7 @@
     } catch (error) {
       const message = hostedAuthRequired(error)
         ? hostedAuthMessage(error)
-        : error.payload?.error || error.message || "Could not load conversations";
+        : errorMessage(error, "Could not load conversations");
       setInboxStatus({
         state: "failed",
         message,
@@ -859,7 +867,7 @@
         state: "failed",
         message: hostedAuthRequired(error)
           ? hostedAuthMessage(error)
-          : error.payload?.error || error.message || "Could not load conversation",
+          : errorMessage(error, "Could not load conversation"),
       });
     }
   }
@@ -920,7 +928,7 @@
         state: "failed",
         message: hostedAuthRequired(error)
           ? hostedAuthMessage(error)
-          : error.payload?.error || error.message || "Reply failed",
+          : errorMessage(error, "Reply failed"),
       });
     }
   }
@@ -950,7 +958,7 @@
         state: "failed",
         message: hostedAuthRequired(error)
           ? hostedAuthMessage(error)
-          : error.payload?.error || error.message || "Conversation update failed",
+          : errorMessage(error, "Conversation update failed"),
       });
     }
   }
@@ -968,7 +976,7 @@
         } catch (error) {
           saveStatus = {
             state: "failed",
-            message: error.payload?.error || error.message || "Private demo login failed",
+            message: errorMessage(error, "Private demo login failed"),
           };
           notify();
           return;
@@ -1179,7 +1187,7 @@
       } catch (error) {
         const message = hostedAuthRequired(error)
           ? hostedAuthMessage(error)
-          : error.payload?.error || error.message || "Could not load conversation";
+          : errorMessage(error, "Could not load conversation");
         setChatStatus({
           state: "failed",
           message,
@@ -1249,7 +1257,7 @@
       });
       return { ok: true };
     } catch (error) {
-      const message = error.payload?.error || error.message || "Conversation persistence failed";
+      const message = errorMessage(error, "Conversation persistence failed");
       saveStatus = {
         state: "failed",
         message,
@@ -1421,7 +1429,7 @@
           state: "failed",
           message: "AI unavailable; showed local fallback",
           isSending: false,
-          error: error.payload?.error || error.message || "AI unavailable",
+          error: errorMessage(error, "AI unavailable"),
           conversationId,
         });
         if (state.tab === "inbox" && api.isHostedMode()) {

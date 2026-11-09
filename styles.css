@@ -473,6 +473,35 @@ button {
   margin-bottom: 14px;
 }
 
+.index-onboarding {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #ded8cf;
+  border-radius: 8px;
+  background: #fffaf1;
+}
+
+.index-onboarding.empty-index {
+  border-style: dashed;
+  background: #fffbf5;
+}
+
+.index-onboarding strong,
+.index-onboarding span {
+  display: block;
+}
+
+.index-onboarding span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .document-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto minmax(90px, auto);
@@ -1128,7 +1157,7 @@ button {
   right: 20px;
   bottom: 20px;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   width: min(310px, calc(100% - 40px));
   height: 440px;
   border: 1px solid #111;
@@ -1215,9 +1244,11 @@ button {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
   overflow: auto;
   padding: 14px;
   background: #f8f4ee;
+  overscroll-behavior: contain;
 }
 
 .message {
@@ -1226,6 +1257,7 @@ button {
   border-radius: 8px;
   font-size: 13px;
   line-height: 1.42;
+  overflow-wrap: anywhere;
 }
 
 .message p {
@@ -1245,6 +1277,11 @@ button {
   align-self: flex-start;
   background: #fff;
   border: 1px solid #e2dad1;
+}
+
+.message.bot.insufficient {
+  border-style: dashed;
+  background: #fffbf5;
 }
 
 .message.user {
@@ -1274,9 +1311,44 @@ button {
 }
 
 .source-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
   margin-top: 8px;
   color: #5f574f;
   font-size: 12px;
+}
+
+.source-list-label {
+  font-weight: 900;
+}
+
+.source-pill {
+  display: inline-flex;
+  max-width: 100%;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 6px;
+  border: 1px solid #ded8cf;
+  border-radius: 7px;
+  background: #fffaf1;
+  color: #50483f;
+  font-weight: 800;
+}
+
+.source-pill small {
+  max-width: 110px;
+  overflow: hidden;
+  color: #7c7267;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fallback-note {
+  display: block;
+  color: #8a5649;
+  font-weight: 800;
 }
 
 .chat-form {
@@ -1394,6 +1466,7 @@ button {
   }
 
   .diagnostics-card dl,
+  .index-onboarding,
   .attention-row {
     grid-template-columns: 1fr;
   }

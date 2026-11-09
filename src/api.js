@@ -55,7 +55,7 @@
     const payload = await parseJson(response);
 
     if (!response.ok) {
-      const error = new Error(payload.error || `Request failed (${response.status})`);
+      const error = new Error(errorMessageFromPayload(payload, `Request failed (${response.status})`));
       error.status = response.status;
       error.payload = payload;
       if (isHostedAuthError(error)) clearHostedSessionState();
@@ -325,7 +325,23 @@
       return "Private demo session could not be verified. Sign in again.";
     }
     if (code === "missing_admin_auth") return "Private demo sign-in required.";
-    return error?.payload?.error || error?.message || "Private demo authentication failed.";
+    return errorMessageFromPayload(error?.payload, error?.message || "Private demo authentication failed.");
+  }
+
+  function errorMessageFromPayload(payload, fallback = "Request failed") {
+    if (!payload || typeof payload !== "object") return fallback;
+    if (typeof payload.error === "string" && payload.error.trim()) return payload.error;
+    if (payload.error && typeof payload.error === "object") {
+      if (typeof payload.error.message === "string" && payload.error.message.trim()) {
+        return payload.error.message;
+      }
+      if (typeof payload.error.code === "string" && payload.error.code.trim()) {
+        return payload.error.code;
+      }
+    }
+    if (typeof payload.message === "string" && payload.message.trim()) return payload.message;
+    if (typeof payload.code === "string" && payload.code.trim()) return payload.code;
+    return fallback;
   }
 
   function normalizeIngestResponse(payload) {
@@ -416,6 +432,7 @@
     logoutHosted,
     isHostedAuthError,
     hostedAuthMessage,
+    errorMessageFromPayload,
     loadWorkspace,
     saveWorkspace,
     answerWithAi,

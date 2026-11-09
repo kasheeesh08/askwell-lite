@@ -41,21 +41,30 @@
               : message.role === "status"
                 ? "status"
                 : "bot";
-          const label = role === "user" ? "You" : role === "agent" ? "Human agent" : role === "status" ? "Status" : "AskWell";
+          const label = role === "user" ? "You" : role === "agent" ? "Human agent" : role === "status" ? "Status" : "AskWell AI";
+          const sources = Array.isArray(message.sources) ? message.sources.filter(Boolean) : [];
+          const citations = Array.isArray(message.citations) ? message.citations.filter(Boolean) : [];
           return `
-        <div class="message ${role}">
+        <div class="message ${role} ${message.insufficientContext ? "insufficient" : ""}">
           <span class="message-label">${label}</span>
           <p>${escapeHtml(message.text)}</p>
           ${
-            message.sources?.length
-              ? `<div class="source-list">Sources: ${message.sources.map(escapeHtml).join(", ")}</div>`
+            sources.length
+              ? `<div class="source-list" aria-label="Answer sources"><span class="source-list-label">Sources:</span>${sources
+                  .map((source) => `<span class="source-pill">${escapeHtml(source)}</span>`)
+                  .join("")}</div>`
               : ""
           }
           ${
-            message.citations?.length
-              ? `<div class="source-list">Citations: ${message.citations
-                  .map((citation) => `${escapeHtml(citation.title)} (${escapeHtml(citation.chunk_id || citation.chunkId || "")})`)
-                  .join(", ")}</div>`
+            citations.length
+              ? `<div class="source-list citations" aria-label="Citations"><span class="source-list-label">Citations:</span>${citations
+                  .map((citation) => `
+                    <span class="source-pill">
+                      ${escapeHtml(citation.title || citation.document_id || "Source")}
+                      <small>${escapeHtml(citation.chunk_id || citation.chunkId || "")}</small>
+                    </span>
+                  `)
+                  .join("")}</div>`
               : ""
           }
           ${
@@ -65,7 +74,7 @@
           }
           ${
             message.fallbackReason
-              ? `<div class="source-list">Fallback: ${escapeHtml(message.fallbackReason)}</div>`
+              ? `<div class="source-list fallback-note">Reason: ${escapeHtml(message.fallbackReason)}</div>`
               : ""
           }
         </div>
@@ -78,12 +87,15 @@
     const conversationText = chatStatus.conversationId
       ? `Thread ${chatStatus.conversationId}`
       : "New conversation";
+    const description = root.AskWellApi?.isHostedMode?.()
+      ? "Hosted RAG answers from indexed documents and keeps the conversation in your inbox."
+      : "Ask a question and the browser-only support brain will answer from your articles.";
 
     return `
     <aside class="preview">
       <div class="preview-header">
         <h2>Live widget</h2>
-        <p>Ask a question and the browser-only support brain will answer from your articles.</p>
+        <p>${escapeHtml(description)}</p>
       </div>
       <div class="browser-frame">
         <div class="browser-bar">
@@ -115,7 +127,7 @@
             <form class="chat-form" data-chat-form>
               <input class="input" name="question" placeholder="Ask about setup or billing" ${sending ? "disabled" : ""} />
               <button class="send-button" title="Send" aria-label="Send" ${sending ? "disabled" : ""}>
-                ${sending ? "..." : "-&gt;"}
+                ${sending ? "..." : "&rarr;"}
               </button>
             </form>
           </section>
@@ -235,7 +247,9 @@
       button.addEventListener("click", () => store.indexArticle(button.dataset.indexArticle));
     });
 
-    root.document.querySelector("[data-index-all]")?.addEventListener("click", store.indexAllArticles);
+    root.document.querySelectorAll("[data-index-all], [data-index-all-documents]").forEach((button) => {
+      button.addEventListener("click", store.indexAllArticles);
+    });
 
     root.document.querySelectorAll("[data-reindex-document]").forEach((button) => {
       button.addEventListener("click", () => store.reindexDocument(button.dataset.reindexDocument));

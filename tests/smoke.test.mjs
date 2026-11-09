@@ -637,6 +637,22 @@ test("bulk article indexing sends existing article ids and reports created and u
           },
         };
       }
+      if (String(url).includes("/api/ai/diagnostics")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              status: "healthy",
+              backend: "hosted",
+              integrity_check: "not-available",
+              document_count: documents.length,
+              chunk_count: documents.reduce((sum, document) => sum + document.chunk_count, 0),
+              embedding_count: documents.reduce((sum, document) => sum + document.chunk_count, 0),
+              documents,
+            };
+          },
+        };
+      }
       return {
         ok: true,
         async json() {
@@ -651,6 +667,7 @@ test("bulk article indexing sends existing article ids and reports created and u
     },
   });
 
+  await flushAsyncWork();
   await context.indexAllArticles();
   await flushAsyncWork();
 
@@ -663,6 +680,144 @@ test("bulk article indexing sends existing article ids and reports created and u
   assert.match(app.innerHTML, /2 indexed/);
   assert.match(app.innerHTML, /Indexed/);
   assert.match(app.innerHTML, /2 chunks/);
+});
+
+test("hosted knowledge onboarding indexes all four demo articles and refreshes diagnostics", async () => {
+  const calls = [];
+  let documents = [];
+  const initialState = {
+    version: 1,
+    tab: "knowledge",
+    settings: { brand: "AskWell", accent: "#ef7d62", welcome: "Hi" },
+    articles: [
+      { id: "trial", title: "Start a free trial", tags: ["billing"], content: "New teams get a 14 day trial. A card is not required." },
+      { id: "install", title: "Install the chat widget", tags: ["setup"], content: "Copy the widget script before the closing body tag." },
+      { id: "cancel", title: "Cancel or downgrade", tags: ["billing"], content: "Open billing settings and choose Cancel plan." },
+      { id: "ai", title: "Connect a real AI model", tags: ["ai"], content: "Connect an API route and keep keys on the server." },
+    ],
+    conversations: [],
+    messages: [],
+    documentStatus: {
+      state: "saved",
+      message: "Knowledge index ready",
+      documents: [],
+      pendingIds: [],
+      indexResults: {},
+      diagnostics: null,
+      diagnosticsState: "idle",
+      diagnosticsMessage: "Diagnostics not checked",
+    },
+  };
+
+  const { app, context } = createAppContext({
+    localStorage: {
+      "askwell-api-mode": "hosted",
+      "askwell-lite-state": JSON.stringify(initialState),
+    },
+    location: { protocol: "https:" },
+    fetch: async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      const path = String(url);
+      if (path.includes("/api/config")) {
+        return {
+          ok: true,
+          async json() {
+            return { apiMode: "hosted", hostedConfigured: true };
+          },
+        };
+      }
+      if (path.includes("/api/auth/session")) {
+        return {
+          ok: true,
+          async json() {
+            return { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" };
+          },
+        };
+      }
+      if (path.includes("/api/workspace")) {
+        return {
+          ok: true,
+          async json() {
+            return initialState;
+          },
+        };
+      }
+      if (path.includes("/api/ai/ingest")) {
+        const body = JSON.parse(options.body || "{}");
+        documents = (body.documents || []).map((document) => ({
+          id: document.id,
+          title: document.title,
+          source_type: document.sourceType || "article",
+          chunk_count: document.chunks?.length || 1,
+          updated_at: "2026-11-09T00:00:00.000Z",
+        }));
+        return {
+          ok: true,
+          async json() {
+            return {
+              status: "ok",
+              document_statuses: documents.map((document) => ({
+                id: document.id,
+                status: "created",
+                version: 1,
+              })),
+            };
+          },
+        };
+      }
+      if (path.includes("/api/ai/documents")) {
+        return {
+          ok: true,
+          async json() {
+            return { documents };
+          },
+        };
+      }
+      if (path.includes("/api/ai/diagnostics")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              status: "healthy",
+              backend: "hosted",
+              integrity_check: "not-available",
+              document_count: documents.length,
+              chunk_count: documents.reduce((sum, document) => sum + document.chunk_count, 0),
+              embedding_count: documents.reduce((sum, document) => sum + document.chunk_count, 0),
+              documents,
+            };
+          },
+        };
+      }
+      return {
+        ok: true,
+        async json() {
+          return {};
+        },
+      };
+    },
+  });
+  context.AskWellHostedEmbeddings.__setEmbedderForTests(async (text) => tokenHashVector384(text));
+
+  await flushAsyncWork();
+  context.AskWellApi.runtimeConfig.authenticated = true;
+  context.AskWellApi.runtimeConfig.csrfToken = "csrf-token";
+  context.setTab("knowledge");
+  assert.match(app.innerHTML, /Index your articles to enable answers/);
+  assert.match(app.innerHTML, /0\/4 articles indexed/);
+
+  await context.indexAllArticles();
+  await flushAsyncWork();
+
+  const ingestCall = calls.find((call) => call.url.includes("/api/ai/ingest"));
+  assert.ok(ingestCall);
+  const body = JSON.parse(ingestCall.options.body);
+  assert.deepEqual(body.documents.map((document) => document.id), ["trial", "install", "cancel", "ai"]);
+  assert.equal(body.documents.some((document) => String(document.id).includes("synthetic")), false);
+  assert.equal(calls.some((call) => call.url.includes("/api/ai/diagnostics")), true);
+  assert.match(app.innerHTML, /4 created/);
+  assert.match(app.innerHTML, /4 indexed/);
+  assert.match(app.innerHTML, /Storage healthy/);
 });
 
 test("article indexing prevents duplicate submissions while pending", async () => {
@@ -758,6 +913,22 @@ test("article indexing surfaces partial failures and allows retry", async () => 
           },
         };
       }
+      if (String(url).includes("/api/ai/diagnostics")) {
+        return {
+          ok: true,
+          async json() {
+            return {
+              status: "healthy",
+              backend: "hosted",
+              integrity_check: "not-available",
+              document_count: documents.length,
+              chunk_count: documents.reduce((sum, document) => sum + document.chunk_count, 0),
+              embedding_count: documents.reduce((sum, document) => sum + document.chunk_count, 0),
+              documents,
+            };
+          },
+        };
+      }
       return {
         ok: true,
         async json() {
@@ -772,6 +943,7 @@ test("article indexing surfaces partial failures and allows retry", async () => 
     },
   });
 
+  await flushAsyncWork();
   await context.indexAllArticles();
   await flushAsyncWork();
   assert.match(app.innerHTML, /1 unchanged, 1 failed/);
@@ -1454,6 +1626,30 @@ test("api client fetches AI diagnostics through Node", async () => {
   assert.equal(diagnostics.integrity_check, "not-available");
 });
 
+test("api client surfaces nested error messages without object stringification", async () => {
+  const { context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async () => ({
+      ok: false,
+      status: 503,
+      async json() {
+        return {
+          error: {
+            code: "FUNCTION_INVOCATION_FAILED",
+            message: "Hosted function failed before reaching storage",
+          },
+        };
+      },
+    }),
+  });
+
+  await assert.rejects(
+    () => context.AskWellApi.getDiagnostics(),
+    /Hosted function failed before reaching storage/,
+  );
+});
+
 test("api client selects hosted mode and sends browser-generated vectors", async () => {
   const calls = [];
   const hostedVector = Array.from({ length: 384 }, (_, index) => (index === 0 ? 1 : 0));
@@ -1535,7 +1731,8 @@ test("chat questions create answers, sources, and inbox entries", () => {
 
   assert.equal(input.value, "");
   assert.match(app.innerHTML, /Copy the widget script/);
-  assert.match(app.innerHTML, /Sources: Install the chat widget/);
+  assert.match(app.innerHTML, /Sources:/);
+  assert.match(app.innerHTML, /Install the chat widget/);
 
   context.setTab("inbox");
   assert.match(app.innerHTML, /How do I install the widget script\?/);
@@ -2084,7 +2281,7 @@ test("chat preview falls back locally when AI service is unavailable", async () 
 
   assert.match(app.innerHTML, /Copy the widget script/);
   assert.match(app.innerHTML, /AI generation unavailable - local fallback/);
-  assert.match(app.innerHTML, /Fallback: ai_generation_error/);
+  assert.match(app.innerHTML, /Reason: ai_generation_error/);
 });
 
 test("inbox conversations can be resolved and reopened", () => {
@@ -2979,6 +3176,10 @@ test("css includes responsive and delete-button safety rules", () => {
   assert.match(cssSource, /\.article \.button\.ghost\[data-delete\]/);
   assert.match(cssSource, /\.stat-grid/);
   assert.match(cssSource, /\.agent-board/);
+  assert.match(cssSource, /grid-template-rows: auto auto minmax\(0, 1fr\) auto/);
+  assert.match(cssSource, /\.messages[\s\S]*min-height: 0/);
+  assert.match(cssSource, /\.source-pill/);
+  assert.match(cssSource, /\.index-onboarding/);
   assert.match(cssSource, /@media \(max-width: 820px\)/);
   assert.match(cssSource, /@media \(max-width: 520px\)/);
 });
