@@ -258,6 +258,20 @@
     };
   }
 
+  async function updateConversationStatus(conversationId, status) {
+    const result = await requestJson(`./api/conversations/${encodeURIComponent(conversationId)}/status`, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
+    return {
+      conversation: normalizeConversationSummary(result.conversation || {}),
+    };
+  }
+
   function configuredMode() {
     const globalMode = root.ASKWELL_API_MODE || root.AskWellConfig?.apiMode;
     if (hostedModeValues.has(globalMode)) return globalMode;
@@ -413,5 +427,6 @@
     listConversations,
     getConversation,
     addConversationMessage,
+    updateConversationStatus,
   };
 })(globalThis);

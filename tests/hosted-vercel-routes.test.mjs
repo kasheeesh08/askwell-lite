@@ -19,6 +19,7 @@ import deleteDocumentRoute from "../api/ai/documents/[id].mjs";
 import conversationsRoute from "../api/conversations/index.mjs";
 import conversationRoute from "../api/conversations/[id].mjs";
 import conversationMessagesRoute from "../api/conversations/[id]/messages.mjs";
+import conversationStatusRoute from "../api/conversations/[id]/status/index.mjs";
 import { createHostedRoute } from "../src/hosted/vercel-route.mjs";
 import { createHostedSession, resetHostedSessionRevocationsForTests } from "../src/hosted/session.mjs";
 import {
@@ -215,6 +216,9 @@ test("frontend hosted API URLs have matching Vercel route files", async () => {
     ["./api/ai/ingest", "api/ai/ingest.mjs"],
     ["./api/ai/answer", "api/ai/answer.mjs"],
     ["./api/ai/documents/", "api/ai/documents/[id].mjs"],
+    ["./api/conversations", "api/conversations/index.mjs"],
+    ["/messages", "api/conversations/[id]/messages.mjs"],
+    ["/status", "api/conversations/[id]/status/index.mjs"],
   ];
   const additionalHostedRoutes = ["api/ai/health.mjs"];
 
@@ -618,6 +622,21 @@ test("vercel route files cover workspace, health, diagnostics, ingest, answer, d
     assert.equal(addedMessage.status, 200);
     assert.equal(addedMessage.body.message.position, 2);
 
+    const resolved = await call(
+      conversationStatusRoute,
+      request({
+        method: "PUT",
+        url: "/api/conversations/conversation-1/status",
+        query: { id: "conversation-1" },
+        headers: auth,
+        body: {
+          status: "resolved",
+        },
+      }),
+    );
+    assert.equal(resolved.status, 200);
+    assert.equal(resolved.body.conversation.status, "resolved");
+
     const conversationDetails = await call(
       conversationRoute,
       request({
@@ -628,6 +647,7 @@ test("vercel route files cover workspace, health, diagnostics, ingest, answer, d
     );
     assert.equal(conversationDetails.status, 200);
     assert.equal(conversationDetails.body.messages.length, 3);
+    assert.equal(conversationDetails.body.conversation.status, "resolved");
 
     const deleted = await call(
       deleteDocumentRoute,

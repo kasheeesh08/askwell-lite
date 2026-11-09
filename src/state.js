@@ -79,6 +79,16 @@
       diagnosticsState: "idle",
       diagnosticsMessage: "Diagnostics not checked",
     },
+    inboxStatus: {
+      state: "idle",
+      message: "Inbox ready",
+      filter: "open",
+      conversations: [],
+      selectedId: "",
+      selectedConversation: null,
+      messages: [],
+      pendingIds: [],
+    },
   };
 
   let state = loadState();
@@ -162,6 +172,43 @@
     };
     saveLocalState();
     notify();
+  }
+
+  function setInboxStatus(update) {
+    const current = state.inboxStatus || defaultState.inboxStatus;
+    const next = {
+      ...current,
+      ...update,
+    };
+    next.conversations = Array.isArray(next.conversations) ? next.conversations : [];
+    next.messages = Array.isArray(next.messages) ? next.messages : [];
+    next.pendingIds = Array.isArray(next.pendingIds) ? next.pendingIds : [];
+    next.selectedId = next.selectedId ? String(next.selectedId) : "";
+    next.selectedConversation = next.selectedConversation && typeof next.selectedConversation === "object"
+      ? next.selectedConversation
+      : null;
+    next.filter = ["open", "resolved", "all"].includes(next.filter) ? next.filter : "open";
+    state = {
+      ...state,
+      inboxStatus: next,
+    };
+    saveLocalState();
+    notify();
+  }
+
+  function isConversationPending(id) {
+    const pendingIds = state.inboxStatus?.pendingIds;
+    return Array.isArray(pendingIds) && pendingIds.includes(id);
+  }
+
+  function setConversationPending(id, pending) {
+    const current = Array.isArray(state.inboxStatus?.pendingIds)
+      ? state.inboxStatus.pendingIds
+      : [];
+    const pendingIds = pending
+      ? Array.from(new Set([...current, id]))
+      : current.filter((pendingId) => pendingId !== id);
+    setInboxStatus({ pendingIds });
   }
 
   function isDocumentPending(id) {
@@ -305,6 +352,9 @@
     state = { ...state, tab };
     saveLocalState();
     notify();
+    if (tab === "inbox" && api.remoteApiAvailable() && api.isHostedMode()) {
+      refreshInbox();
+    }
   }
 
   function addArticle(event) {
@@ -698,6 +748,15 @@
   }
 
   function toggleConversation(id) {
+    if (api.remoteApiAvailable() && api.isHostedMode()) {
+      const conversation = [
+        ...(state.inboxStatus?.conversations || []),
+        ...(state.inboxStatus?.selectedConversation ? [state.inboxStatus.selectedConversation] : []),
+      ].find((item) => item.id === id);
+      const nextStatus = conversation?.status === "resolved" ? "open" : "resolved";
+      updateConversationStatus(id, nextStatus);
+      return;
+    }
     state = {
       ...state,
       conversations: state.conversations.map((conversation) =>
@@ -711,6 +770,159 @@
     };
     saveState();
     notify();
+  }
+
+  async function refreshInbox(options = {}) {
+    if (!api.remoteApiAvailable() || !api.isHostedMode()) return;
+    const currentSelectedId = state.inboxStatus?.selectedId || "";
+    if (!options.preserveMessage) {
+      setInboxStatus({ state: "loading", message: "Loading conversations" });
+    }
+    try {
+      const conversations = await api.listConversations();
+      const selectedId = conversations.some((conversation) => conversation.id === currentSelectedId)
+        ? currentSelectedId
+        : conversations[0]?.id || "";
+      let details = null;
+      if (selectedId) {
+        details = await api.getConversation(selectedId);
+      }
+      setInboxStatus({
+        state: "saved",
+        message: conversations.length
+          ? `${conversations.length} conversation${conversations.length === 1 ? "" : "s"} loaded`
+          : "No conversations yet",
+        conversations,
+        selectedId,
+        selectedConversation: details?.conversation || null,
+        messages: details?.messages || [],
+      });
+    } catch (error) {
+      const message = hostedAuthRequired(error)
+        ? hostedAuthMessage(error)
+        : error.payload?.error || error.message || "Could not load conversations";
+      setInboxStatus({
+        state: "failed",
+        message,
+      });
+    }
+  }
+
+  async function selectInboxConversation(id) {
+    if (!id) return;
+    if (!api.remoteApiAvailable() || !api.isHostedMode()) {
+      setInboxStatus({ selectedId: id });
+      return;
+    }
+    setInboxStatus({ state: "loading", message: "Loading conversation", selectedId: id });
+    try {
+      const details = await api.getConversation(id);
+      setInboxStatus({
+        state: "saved",
+        message: "Conversation loaded",
+        selectedId: id,
+        selectedConversation: details.conversation,
+        messages: details.messages,
+      });
+    } catch (error) {
+      setInboxStatus({
+        state: "failed",
+        message: hostedAuthRequired(error)
+          ? hostedAuthMessage(error)
+          : error.payload?.error || error.message || "Could not load conversation",
+      });
+    }
+  }
+
+  function setInboxFilter(filter) {
+    const nextFilter = ["open", "resolved", "all"].includes(filter) ? filter : "open";
+    const conversations = Array.isArray(state.inboxStatus?.conversations)
+      ? state.inboxStatus.conversations
+      : [];
+    const selectedStillVisible = conversations.some((conversation) =>
+      conversation.id === state.inboxStatus?.selectedId &&
+      (nextFilter === "all" ||
+        (nextFilter === "resolved" ? conversation.status === "resolved" : conversation.status !== "resolved")),
+    );
+    const nextSelected = selectedStillVisible
+      ? state.inboxStatus.selectedId
+      : conversations.find((conversation) =>
+          nextFilter === "all" ||
+          (nextFilter === "resolved" ? conversation.status === "resolved" : conversation.status !== "resolved"),
+        )?.id || "";
+    setInboxStatus({
+      filter: nextFilter,
+      selectedId: nextSelected,
+      selectedConversation: selectedStillVisible ? state.inboxStatus?.selectedConversation : null,
+      messages: selectedStillVisible ? state.inboxStatus?.messages || [] : [],
+    });
+    if (nextSelected && !selectedStillVisible && api.remoteApiAvailable() && api.isHostedMode()) {
+      selectInboxConversation(nextSelected);
+    }
+  }
+
+  async function sendAgentReply(event) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new root.FormData(formElement);
+    const conversationId = String(form.get("conversationId") || state.inboxStatus?.selectedId || "").trim();
+    const content = String(form.get("content") || "").trim();
+    if (!conversationId || !content) {
+      setInboxStatus({ state: "failed", message: "Choose a conversation and write a reply" });
+      return;
+    }
+    if (isConversationPending(conversationId)) return;
+    setConversationPending(conversationId, true);
+    setInboxStatus({ state: "saving", message: "Sending reply" });
+    try {
+      await api.addConversationMessage(conversationId, {
+        senderType: "agent",
+        content,
+        metadata: { source: "agent-inbox" },
+      });
+      resetForm(formElement);
+      setConversationPending(conversationId, false);
+      await refreshInbox({ preserveMessage: true });
+      setInboxStatus({ state: "saved", message: "Reply sent" });
+    } catch (error) {
+      setConversationPending(conversationId, false);
+      setInboxStatus({
+        state: "failed",
+        message: hostedAuthRequired(error)
+          ? hostedAuthMessage(error)
+          : error.payload?.error || error.message || "Reply failed",
+      });
+    }
+  }
+
+  async function updateConversationStatus(id, status) {
+    if (!id || isConversationPending(id)) return;
+    if (!api.remoteApiAvailable() || !api.isHostedMode()) {
+      toggleConversation(id);
+      return;
+    }
+    setConversationPending(id, true);
+    setInboxStatus({
+      state: "saving",
+      message: status === "resolved" ? "Resolving conversation" : "Reopening conversation",
+    });
+    try {
+      await api.updateConversationStatus(id, status);
+      setConversationPending(id, false);
+      await refreshInbox({ preserveMessage: true });
+      setInboxStatus({
+        state: "saved",
+        message: status === "resolved" ? "Conversation resolved" : "Conversation reopened",
+      });
+    } catch (error) {
+      setConversationPending(id, false);
+      setInboxStatus({
+        state: "failed",
+        message: hostedAuthRequired(error)
+          ? hostedAuthMessage(error)
+          : error.payload?.error || error.message || "Conversation update failed",
+      });
+    }
   }
 
   async function saveSettings(event) {
@@ -971,6 +1183,9 @@
         };
         pushConversation(question, result);
         await persistHostedConversation(question, result);
+        if (state.tab === "inbox" && api.isHostedMode()) {
+          await refreshInbox({ preserveMessage: true });
+        }
         saveState();
         notify();
         return;
@@ -986,6 +1201,9 @@
         };
         pushConversation(question, result);
         await persistHostedConversation(question, result);
+        if (state.tab === "inbox" && api.isHostedMode()) {
+          await refreshInbox({ preserveMessage: true });
+        }
         saveState();
         notify();
         return;
@@ -1014,6 +1232,11 @@
     refreshDocuments,
     refreshDiagnostics,
     selectDocument,
+    refreshInbox,
+    selectInboxConversation,
+    setInboxFilter,
+    sendAgentReply,
+    updateConversationStatus,
     indexArticle,
     indexAllArticles,
     reindexDocument,

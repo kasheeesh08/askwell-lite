@@ -154,6 +154,17 @@ test("sqlite adapter persists conversations, ordered messages, and workspace iso
       assert.equal(added.message.position, 2);
       assert.equal(adapter.getConversation("default", "conversation-1").messages.length, 3);
       assert.equal(adapter.listConversations("default")[0].lastMessagePreview, "An owner can help with exports.");
+      assert.equal(
+        adapter.updateConversationStatus(
+          {
+            workspaceId: "default",
+            conversationId: "conversation-1",
+            status: "resolved",
+          },
+          { workspaceId: "default" },
+        ).conversation.status,
+        "resolved",
+      );
       assert.equal(adapter.listConversations("support").length, 0);
 
       assert.throws(

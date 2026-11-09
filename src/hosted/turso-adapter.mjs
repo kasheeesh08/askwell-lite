@@ -9,6 +9,7 @@ import {
   SUPPORTED_INDEXING_PROFILE_WITH_KEY,
   validateConversationCreateRequest,
   validateConversationMessageRequest,
+  validateConversationStatusRequest,
   validateDeleteDocumentRequest,
   validateHostedIngestRequest,
   validateVector,
@@ -619,6 +620,34 @@ export class HostedTursoAdapter {
           metadata: request.metadata,
           createdAt: timestamp,
         },
+      };
+    });
+  }
+
+  async updateConversationStatus(payload, context) {
+    const request = validateConversationStatusRequest(payload, context);
+    return this._transaction(async (tx) => {
+      await this._requireWorkspace(request.workspaceId, tx);
+      const conversation = await this._get(
+        "SELECT id FROM conversations WHERE workspace_id = ? AND id = ?",
+        [request.workspaceId, request.conversationId],
+        tx,
+      );
+      if (!conversation) {
+        fail("unknown_conversation", "Conversation is not available in hosted storage", 404, {
+          conversationId: request.conversationId,
+        });
+      }
+      const timestamp = now();
+      await this._execute(
+        `UPDATE conversations
+         SET status = ?, updated_at = ?
+         WHERE workspace_id = ? AND id = ?`,
+        [request.status, timestamp, request.workspaceId, request.conversationId],
+        tx,
+      );
+      return {
+        conversation: (await this.getConversation(request.workspaceId, request.conversationId, tx)).conversation,
       };
     });
   }

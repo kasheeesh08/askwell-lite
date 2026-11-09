@@ -10,6 +10,7 @@ import {
   SUPPORTED_INDEXING_PROFILE_WITH_KEY,
   validateConversationCreateRequest,
   validateConversationMessageRequest,
+  validateConversationStatusRequest,
   validateDeleteDocumentRequest,
   validateHostedIngestRequest,
   validateVector,
@@ -610,6 +611,32 @@ export class HostedSQLiteAdapter {
           metadata: request.metadata,
           createdAt: timestamp,
         },
+      };
+    });
+  }
+
+  updateConversationStatus(payload, context) {
+    const request = validateConversationStatusRequest(payload, context);
+    return this._transaction(() => {
+      this._requireWorkspace(request.workspaceId);
+      const conversation = this.db
+        .prepare("SELECT id FROM conversations WHERE workspace_id = ? AND id = ?")
+        .get(request.workspaceId, request.conversationId);
+      if (!conversation) {
+        fail("unknown_conversation", "Conversation is not available in hosted storage", 404, {
+          conversationId: request.conversationId,
+        });
+      }
+      const timestamp = now();
+      this.db
+        .prepare(
+          `UPDATE conversations
+           SET status = ?, updated_at = ?
+           WHERE workspace_id = ? AND id = ?`,
+        )
+        .run(request.status, timestamp, request.workspaceId, request.conversationId);
+      return {
+        conversation: this.listConversations(request.workspaceId).find((item) => item.id === request.conversationId),
       };
     });
   }

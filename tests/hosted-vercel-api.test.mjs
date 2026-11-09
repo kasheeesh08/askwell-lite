@@ -530,6 +530,22 @@ test("vercel handler persists customer conversations and messages with hosted se
   assert.equal(added.status, 200);
   assert.equal(added.body.message.position, 2);
 
+  const resolved = await call(
+    handler,
+    request({
+      method: "PUT",
+      url: "/api/hosted/conversation-status",
+      headers,
+      body: {
+        workspaceId: "default",
+        conversationId: "conversation-1",
+        status: "resolved",
+      },
+    }),
+  );
+  assert.equal(resolved.status, 200);
+  assert.equal(resolved.body.conversation.status, "resolved");
+
   const details = await call(
     handler,
     request({
@@ -540,6 +556,7 @@ test("vercel handler persists customer conversations and messages with hosted se
   );
   assert.equal(details.status, 200);
   assert.deepEqual(details.body.messages.map((message) => message.id), ["message-1", "message-2", "message-3"]);
+  assert.equal(details.body.conversation.status, "resolved");
 
   const crossWorkspace = await call(
     handler,
@@ -568,6 +585,22 @@ test("vercel handler persists customer conversations and messages with hosted se
   );
   assert.equal(missingCsrf.status, 403);
   assert.equal(missingCsrf.body.code, "csrf_required");
+
+  const invalidStatus = await call(
+    handler,
+    request({
+      method: "PUT",
+      url: "/api/hosted/conversation-status",
+      headers,
+      body: {
+        workspaceId: "default",
+        conversationId: "conversation-1",
+        status: "archived",
+      },
+    }),
+  );
+  assert.equal(invalidStatus.status, 400);
+  assert.equal(invalidStatus.body.code, "invalid_conversation_status");
 });
 
 test("vercel handler rejects invalid conversation ids and invalid message senders", async () => {

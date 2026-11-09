@@ -113,6 +113,20 @@ export async function conversationMessageRequest(req) {
   });
 }
 
+export async function conversationStatusRequest(req) {
+  const route = new URL(req.url || "/", "http://localhost");
+  const segments = route.pathname.split("/").filter(Boolean);
+  const conversationId = req.query?.id || decodeURIComponent(segments.at(-2) || "");
+  return forwardHostedRequest(req, {
+    url: withOriginalQuery("/api/hosted/conversation-status", req.url),
+    body: {
+      ...(req.body && typeof req.body === "object" ? req.body : {}),
+      workspaceId: route.searchParams.get("workspaceId") || header(req, "x-askwell-workspace-id") || "default",
+      conversationId,
+    },
+  });
+}
+
 export function forwardHostedRequest(req, overrides = {}) {
   const mapped = Object.create(req || null);
   for (const property of ["method", "headers", "query", "body", "socket"]) {

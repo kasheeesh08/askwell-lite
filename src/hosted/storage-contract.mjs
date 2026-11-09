@@ -354,6 +354,16 @@ export function validateConversationMessageRequest(payload, context, limits = HO
   });
 }
 
+export function validateConversationStatusRequest(payload, context) {
+  const body = objectRecord(payload, "conversationStatus");
+  const workspaceId = validateWorkspaceContext(body.workspaceId, context);
+  return {
+    workspaceId,
+    conversationId: validId(body.conversationId || context?.conversationId, "conversationId"),
+    status: conversationStatus(body.status),
+  };
+}
+
 export function validateConversationLookupRequest(payload, context) {
   const body = objectRecord(payload || {}, "conversationLookup");
   const workspaceId = validateWorkspaceContext(body.workspaceId, context);
@@ -679,6 +689,27 @@ export function createMemoryHostedStore(options = {}) {
       return {
         conversation: conversationSummary(conversation, conversationMessages),
         message: clone(message),
+      };
+    },
+
+    updateConversationStatus(payload, context) {
+      const request = validateConversationStatusRequest(payload, context);
+      requireWorkspace(request.workspaceId);
+      const conversation = conversations.get(request.workspaceId).get(request.conversationId);
+      if (!conversation) {
+        fail("unknown_conversation", "Conversation is not available in hosted storage", 404, {
+          conversationId: request.conversationId,
+        });
+      }
+      const timestamp = now();
+      conversation.status = request.status;
+      conversation.updatedAt = timestamp;
+      conversations.get(request.workspaceId).set(request.conversationId, conversation);
+      return {
+        conversation: conversationSummary(
+          conversation,
+          messages.get(request.workspaceId).get(request.conversationId) || [],
+        ),
       };
     },
 

@@ -237,6 +237,26 @@
         store.toggleConversation(button.dataset.toggleConversation),
       );
     });
+
+    root.document.querySelector("[data-refresh-inbox]")?.addEventListener("click", store.refreshInbox);
+
+    root.document.querySelectorAll("[data-inbox-filter]").forEach((button) => {
+      button.addEventListener("click", () => store.setInboxFilter(button.dataset.inboxFilter));
+    });
+
+    root.document.querySelectorAll("[data-select-conversation]").forEach((button) => {
+      button.addEventListener("click", () =>
+        store.selectInboxConversation(button.dataset.selectConversation),
+      );
+    });
+
+    root.document.querySelectorAll("[data-conversation-status]").forEach((button) => {
+      button.addEventListener("click", () =>
+        store.updateConversationStatus(button.dataset.conversationId, button.dataset.conversationStatus),
+      );
+    });
+
+    root.document.querySelector("[data-agent-reply-form]")?.addEventListener("submit", store.sendAgentReply);
   }
 
   store.subscribe(render);
@@ -255,6 +275,11 @@
   root.addArticle = store.addArticle;
   root.deleteArticle = store.deleteArticle;
   root.selectDocument = store.selectDocument;
+  root.refreshInbox = store.refreshInbox;
+  root.selectInboxConversation = store.selectInboxConversation;
+  root.setInboxFilter = store.setInboxFilter;
+  root.sendAgentReply = store.sendAgentReply;
+  root.updateConversationStatus = store.updateConversationStatus;
   root.indexArticle = store.indexArticle;
   root.indexAllArticles = store.indexAllArticles;
   root.reindexDocument = store.reindexDocument;

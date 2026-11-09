@@ -28,6 +28,25 @@
     };
   }
 
+  function normalizeInboxStatus(input = {}, defaults = {}) {
+    const raw = input && typeof input === "object" ? input : defaults;
+    return {
+      ...defaults,
+      ...raw,
+      state: raw.state || defaults.state || "idle",
+      message: raw.message || defaults.message || "",
+      filter: ["open", "resolved", "all"].includes(raw.filter) ? raw.filter : defaults.filter || "open",
+      conversations: Array.isArray(raw.conversations) ? raw.conversations : [],
+      selectedId: raw.selectedId ? String(raw.selectedId) : "",
+      selectedConversation:
+        raw.selectedConversation && typeof raw.selectedConversation === "object"
+          ? raw.selectedConversation
+          : null,
+      messages: Array.isArray(raw.messages) ? raw.messages : [],
+      pendingIds: Array.isArray(raw.pendingIds) ? raw.pendingIds : [],
+    };
+  }
+
   function normalizeState(input = {}, defaults) {
     const rawDocumentStatus =
       input.documentStatus && typeof input.documentStatus === "object"
@@ -64,6 +83,7 @@
         ? input.messages.map(normalizeMessage)
         : defaults.messages,
       documentStatus,
+      inboxStatus: normalizeInboxStatus(input.inboxStatus, defaults.inboxStatus),
     };
   }
 

@@ -24,6 +24,7 @@ const AUTHENTICATED_PATHS = new Set([
   "/api/hosted/conversations",
   "/api/hosted/conversation",
   "/api/hosted/conversation-message",
+  "/api/hosted/conversation-status",
   "/api/hosted/ingest",
   "/api/hosted/delete-document",
   "/api/hosted/answer",
@@ -145,6 +146,12 @@ export function createHostedVercelHandler(options = {}) {
         const body = await readJsonBody(req, limits.maxPayloadBytes);
         const adapter = await getAdapter();
         return sendJson(res, 200, await adapter.addConversationMessage(body, context));
+      }
+
+      if (method === "PUT" && route.pathname === "/api/hosted/conversation-status") {
+        const body = await readJsonBody(req, limits.maxPayloadBytes);
+        const adapter = await getAdapter();
+        return sendJson(res, 200, await adapter.updateConversationStatus(body, context));
       }
 
       if (method === "POST" && route.pathname === "/api/hosted/ingest") {

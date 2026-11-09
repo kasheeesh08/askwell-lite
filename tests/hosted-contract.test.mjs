@@ -451,6 +451,17 @@ test("memory hosted store persists conversations and ordered messages by workspa
   assert.equal(added.message.position, 2);
   assert.equal(store.getConversation("default", "conversation-1").messages.length, 3);
   assert.equal(store.listConversations("default")[0].lastMessagePreview, "A human can follow up if needed.");
+  assert.equal(
+    store.updateConversationStatus(
+      {
+        workspaceId: "default",
+        conversationId: "conversation-1",
+        status: "resolved",
+      },
+      workspace,
+    ).conversation.status,
+    "resolved",
+  );
   assert.equal(store.listConversations("support").length, 0);
 
   assert.throws(
@@ -477,5 +488,17 @@ test("memory hosted store persists conversations and ordered messages by workspa
         workspace,
       ),
     /sender type is not supported/,
+  );
+  assert.throws(
+    () =>
+      store.updateConversationStatus(
+        {
+          workspaceId: "default",
+          conversationId: "conversation-1",
+          status: "archived",
+        },
+        workspace,
+      ),
+    /status is not supported/,
   );
 });

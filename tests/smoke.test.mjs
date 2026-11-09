@@ -1798,6 +1798,220 @@ test("inbox conversations can be resolved and reopened", () => {
   assert.match(app.innerHTML, /class="status open"/);
 });
 
+test("hosted agent inbox loads transcripts, filters conversations, replies, and updates status", async () => {
+  const calls = [];
+  const conversations = [
+    {
+      id: "conversation-1",
+      workspaceId: "default",
+      customerId: "visitor-1",
+      status: "open",
+      messageCount: 2,
+      lastMessagePreview: "No card is required.",
+      createdAt: "2026-01-01T10:00:00.000Z",
+      updatedAt: "2026-01-01T10:01:00.000Z",
+      lastMessageAt: "2026-01-01T10:01:00.000Z",
+    },
+    {
+      id: "conversation-2",
+      workspaceId: "default",
+      customerId: "visitor-2",
+      status: "resolved",
+      messageCount: 1,
+      lastMessagePreview: "Thanks",
+      createdAt: "2026-01-01T09:00:00.000Z",
+      updatedAt: "2026-01-01T09:00:00.000Z",
+      lastMessageAt: "2026-01-01T09:00:00.000Z",
+    },
+  ];
+  const messages = [
+    {
+      id: "message-1",
+      conversationId: "conversation-1",
+      senderType: "customer",
+      content: "Do I need a card?",
+      position: 0,
+      createdAt: "2026-01-01T10:00:00.000Z",
+    },
+    {
+      id: "message-2",
+      conversationId: "conversation-1",
+      senderType: "assistant",
+      content: "No card is required.",
+      position: 1,
+      createdAt: "2026-01-01T10:01:00.000Z",
+    },
+  ];
+
+  const { app, context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          if (String(url).includes("/api/config")) {
+            return { apiMode: "hosted", hostedConfigured: true };
+          }
+          if (String(url).includes("/api/auth/session")) {
+            return { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" };
+          }
+          if (String(url).includes("/api/workspace")) {
+            return { version: 1, settings: {}, articles: [], conversations: [] };
+          }
+          if (String(url).includes("/api/ai/documents")) {
+            return { documents: [] };
+          }
+          if (String(url).includes("/api/conversations/conversation-1/messages")) {
+            messages.push({
+              id: "message-3",
+              conversationId: "conversation-1",
+              senderType: "agent",
+              content: JSON.parse(options.body).content,
+              position: 2,
+              createdAt: "2026-01-01T10:02:00.000Z",
+            });
+            conversations[0].lastMessagePreview = JSON.parse(options.body).content;
+            conversations[0].messageCount = 3;
+            return { conversation: conversations[0], message: messages.at(-1) };
+          }
+          if (String(url).includes("/api/conversations/conversation-1/status")) {
+            conversations[0].status = JSON.parse(options.body).status;
+            return { conversation: conversations[0] };
+          }
+          if (String(url).includes("/api/conversations/conversation-1")) {
+            return { conversation: conversations[0], messages };
+          }
+          if (String(url).endsWith("/api/conversations")) {
+            return { conversations };
+          }
+          return {};
+        },
+      };
+    },
+  });
+
+  await flushAsyncWork();
+  context.setTab("inbox");
+  await context.refreshInbox();
+  await flushAsyncWork();
+
+  assert.match(app.innerHTML, /visitor-1/);
+  assert.match(app.innerHTML, /Do I need a card\?/);
+  assert.match(app.innerHTML, /No card is required\./);
+  assert.match(app.innerHTML, /Assistant/);
+  assert.match(app.innerHTML, /data-conversation-status="resolved"/);
+
+  context.setInboxFilter("resolved");
+  assert.match(app.innerHTML, /visitor-2/);
+  assert.doesNotMatch(app.innerHTML, /visitor-1[\s\S]*No card is required\./);
+
+  await context.selectInboxConversation("conversation-1");
+  const form = new FakeElement("agent-reply-form");
+  form.fields = {
+    conversationId: "conversation-1",
+    content: "A support agent can help with billing.",
+  };
+  await context.sendAgentReply({ preventDefault() {}, currentTarget: form });
+  assert.equal(form.resetCalled, true);
+  assert.match(app.innerHTML, /A support agent can help with billing\./);
+  const replyCall = calls.find((call) => call.url.includes("/api/conversations/conversation-1/messages"));
+  assert.equal(JSON.parse(replyCall.options.body).senderType, "agent");
+  assert.equal(replyCall.options.headers["x-askwell-csrf-token"], "csrf-token");
+
+  await context.updateConversationStatus("conversation-1", "resolved");
+  assert.equal(conversations[0].status, "resolved");
+  const statusCall = calls.find((call) => call.url.includes("/api/conversations/conversation-1/status"));
+  assert.equal(statusCall.options.method, "PUT");
+  assert.equal(statusCall.options.headers["x-askwell-csrf-token"], "csrf-token");
+
+  await context.updateConversationStatus("conversation-1", "open");
+  assert.equal(conversations[0].status, "open");
+});
+
+test("hosted agent inbox preserves the transcript when an agent reply fails", async () => {
+  const { app, context } = createAppContext({
+    location: { protocol: "https:" },
+    localStorage: { "askwell-api-mode": "hosted" },
+    fetch: async (url) => {
+      const text = String(url);
+      return {
+        ok: !text.includes("/messages"),
+        status: text.includes("/messages") ? 500 : 200,
+        async json() {
+          if (text.includes("/api/config")) {
+            return { apiMode: "hosted", hostedConfigured: true };
+          }
+          if (text.includes("/api/auth/session")) {
+            return { authenticated: true, csrfToken: "csrf-token", expiresAt: "2099-01-01T00:00:00.000Z" };
+          }
+          if (text.includes("/api/workspace")) {
+            return { version: 1, settings: {}, articles: [], conversations: [] };
+          }
+          if (text.includes("/api/ai/documents")) {
+            return { documents: [] };
+          }
+          if (text.includes("/messages")) {
+            return { error: "Reply storage failed" };
+          }
+          if (text.includes("/api/conversations/conversation-1")) {
+            return {
+              conversation: {
+                id: "conversation-1",
+                workspaceId: "default",
+                customerId: "visitor-1",
+                status: "open",
+                messageCount: 1,
+                lastMessagePreview: "Hello",
+              },
+              messages: [
+                {
+                  id: "message-1",
+                  conversationId: "conversation-1",
+                  senderType: "customer",
+                  content: "Hello",
+                  position: 0,
+                },
+              ],
+            };
+          }
+          if (text.endsWith("/api/conversations")) {
+            return {
+              conversations: [
+                {
+                  id: "conversation-1",
+                  workspaceId: "default",
+                  customerId: "visitor-1",
+                  status: "open",
+                  messageCount: 1,
+                  lastMessagePreview: "Hello",
+                },
+              ],
+            };
+          }
+          return {};
+        },
+      };
+    },
+  });
+
+  await flushAsyncWork();
+  context.setTab("inbox");
+  await context.refreshInbox();
+  const form = new FakeElement("agent-reply-form");
+  form.fields = {
+    conversationId: "conversation-1",
+    content: "This will fail",
+  };
+  await context.sendAgentReply({ preventDefault() {}, currentTarget: form });
+
+  assert.equal(form.resetCalled, undefined);
+  assert.match(app.innerHTML, /Reply storage failed/);
+  assert.match(app.innerHTML, /Hello/);
+});
+
 test("agent audit creates a multi-agent build summary", () => {
   const { app, context } = createAppContext();
   context.setTab("agents");
